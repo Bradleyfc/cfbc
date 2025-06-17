@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Listado de Alumnos - <strong>{{ course }}</strong></h2>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th scope="col">Alumno</th>
+            <th scope="col">Evaluacion 1</th>
+            <th scope="col">Evaluacion 2</th>
+            <th scope="col">Evaluacion 3</th>
+            <th scope="col">Evaluacion 4</th>
+            <th scope="col">Evaluacion 5</th>
+            <th scope="col">Evaluacion 6</th>
+            <th scope="col">Promedio</th>
+            <th scope="col">Acciones</th>
+            
+        </tr>
+    </thead>
+    <tbody>
+        {%for data in student_data %}
+        <tr>
+            <th scope="row">{{ data.name }}</th>
+            <td>{{ data.nota_1 }}</td>
+            <td>{{ data.nota_2 }}</td>
+            <td>{{ data.nota_3 }}</td>
+            <td>{{ data.nota_4 }}</td>
+            <td>{{ data.nota_5 }}</td>
+            <td>{{ data.nota_6 }}</td>
+            <td><strong>{{ data.average }}</strong></td>
+            <td>
+                {% if data.matricula_id %}
+                <a href="{% url 'add_nota' matricula_id=data.matricula_id %}" class="btn btn-sm btn-primary ">Agregar Nota</a>
+                {% else %}
+                <span class="text-muted">No hay matrícula</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+
+
+</table>
+
+
+
+{% endblock %}

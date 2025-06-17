@@ -1,0 +1,24 @@
+<h5>
+  Cursos Asignados {% if assigned_courses %}
+  <ul class="list-group">
+    {% for course in assigned_courses %}
+     {% with enrollment_count=course.matriculas_set.count %}
+        <li class="list-group-item">
+         {{course.name}}
+         <a href="{% url 'student_list_notas' course.id %}" class="btn btn-sm btn-warning float-end">
+          Notas
+         <span class="badge rounded-pill bg-light text-danger">{{enrollment_count}}</span>
+         </a>
+        </li>
+        {% endwith %} 
+    {% endfor %}
+  </ul>
+
+  {% else %}
+
+  <div class="alert alert-primary" role="'alert">
+    Ud. no tiene Cursos Asignados hastta el momento
+  </div>
+
+  {% endif %}
+</h5>

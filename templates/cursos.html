@@ -1,0 +1,69 @@
+{% extends 'base.html' %} {% block content %}
+{% load static %}
+<h2>Bienvenido {{ user.username | upper }}</h2>
+
+<br />
+<div class="container" my-4>
+  <h3>Listado de Cursos Disponibles</h3>
+ 
+  
+  {% if group_name == 'Secretaría' %}
+  <a class="btn btn-primary" href="{% url 'crear_cursos'%}">Agregar Curso</a>
+  {% endif %}
+
+  <!-- Mensaje de creacion -->
+<!-- 
+  {% if messages %}
+  <div class="container" mt-3>
+    {% for message in messages %}
+    <div class="alert alert-success" role="alert">
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %} -->
+
+<style>
+  .card-img-top {
+    width: 100%;
+    height: 200px; /* Adjust as needed */
+    object-fit: cover;
+  }
+</style>
+
+  <div class="row row-cols-1 row-cols-md-3 g-4 my-4">
+    {% for course in courses %}
+    <div class="col">
+      <div class="card">
+        <img src="{{ course.image.url }}" class="card-img-top" alt="{{course.name}}">
+        <div class="card-body">
+          <h5 class="card-title">{{course.name}}</h5>
+          <p class="card-text">{{course.description}}</p>
+          <p class="card-text">
+            <strong>Profesor:</strong> {{course.teacher.first_name}} {{course.teacher.last_name}}
+          </p>
+          <p class="card-text">
+            <strong>Cantidad de Clases:</strong> {{course.class_quantity}}
+          </p>
+          <p class="card-text"><strong>Cantidad de Inscritos:</strong> {{course.enrollment_count}}</p>
+
+            
+            
+            {% if group_name == 'Estudiantes' and not course.is_enrolled %}
+            <a class="btn btn-sm btn-success" href="{% url 'inscribirse_curso' course.id %}">Anotarse</a>
+            {% elif group_name == 'Estudiantes' and course.is_enrolled %}
+            <p>Ya estas inscrito</p>
+            {% endif %}
+            
+            {% if group_name == 'Secretaría' %}
+            <a class="btn btn-sm btn-warning" href="{% url 'editar_curso' course.id %}">Editar</a>
+            <a class="btn btn-sm btn-danger" href="{% url 'eliminar_curso' course.id %}" onclick="return confirm('¿Estás seguro de que deseas eliminar este curso?')">Eliminar</a>
+            {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% endblock %}
