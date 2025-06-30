@@ -1,33 +1,29 @@
 from django.urls import path
 from . import views
-from .views import ProfileView, CoursesView, CourseCreateView, CourseUpdateView, StudentListNotasView, AddNotaView
+
+app_name = 'principal'
 
 urlpatterns = [
-    #pagina de inicio
+    path('admin/principal/cursoacademico/<int:pk>/detail/', views.CursoAcademicoDetailView.as_view(), name='principal_cursoacademico_detail'),
     path('', views.HomeView.as_view(), name='home'),
-    #pagona de lista de cursos
-    #path('listadocursos/', views.ListadoCursosView.as_view(), name='listadocursos'),
-    #pagina de cerrar sesion
+    path('listado_cursos/', views.ListadoCursosView.as_view(), name='listado_cursos'),
+    path('login_redirect/', views.LoginRedirectView.as_view(), name='login_redirect'),
+    path('profile/', views.ProfileView.as_view(), name='profile'),
+    path('courses/', views.CoursesView.as_view(), name='courses'),
+    path('create_course/', views.CourseCreateView.as_view(), name='create_course'),
+    path('update_course/<int:pk>/', views.CourseUpdateView.as_view(), name='update_course'),
+    path('inscribirse_curso/<int:course_id>/', views.inscribirse_curso, name='inscribirse_curso'),
+    path('eliminar_curso/<int:course_id>/', views.eliminar_curso, name='eliminar_curso'),
+    path('student_list_notas/', views.StudentListNotasView.as_view(), name='student_list_notas'),
+    path('add_nota/<int:matricula_id>/', views.AddNotaView.as_view(), name='add_nota'),
+    path('historico_alumno/<int:student_id>/', views.historico_alumno, name='historico_alumno'),
     path('logout/', views.logout_view, name='logout_view'),
-    #pagina de login y registro
     path('registro/', views.registro, name='registro'),
-    #Pagina de vista del perfil
-    path('profile/', ProfileView.as_view(), name='profile'),
-    #pagina de vista de los cursos 
-    path('cursos/', CoursesView.as_view(), name='cursos'),
-    # pagina de creacion de cursos
-    path('cursos/create/', CourseCreateView.as_view(), name='crear_cursos'),
-    # ruta para inscribirse a un curso
+    path('cursos/', views.CoursesView.as_view(), name='cursos'),
+    path('cursos/create/', views.CourseCreateView.as_view(), name='crear_cursos'),
     path('cursos/inscribirse/<int:curso_id>/', views.inscribirse_curso, name='inscribirse_curso'),
-    # ruta para editar un curso
-    path('cursos/editar/<int:pk>/', CourseUpdateView.as_view(), name='editar_curso'),
-    # ruta para eliminar un curso
+    path('cursos/editar/<int:pk>/', views.CourseUpdateView.as_view(), name='editar_curso'),
     path('cursos/eliminar/<int:curso_id>/', views.eliminar_curso, name='eliminar_curso'),
-    # ruta de vista de notas en el perfil profesores
-    path('cursos/<int:course_id>/', StudentListNotasView.as_view(), name='student_list_notas'),
-    # ruta para agregar notas
-     path('matricula/<int:matricula_id>/add_nota/', AddNotaView.as_view(), name='add_nota'),
-    # ruta para redirigir despues del login
-     path('login_redirect/', views.LoginRedirectView.as_view(), name='login_redirect'), 
-
+    path('cursos/<int:course_id>/', views.StudentListNotasView.as_view(), name='student_list_notas_by_course'),
+    path('matricula/<int:matricula_id>/add_nota/', views.AddNotaView.as_view(), name='add_nota'),
 ]

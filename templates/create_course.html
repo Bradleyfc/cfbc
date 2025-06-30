@@ -32,8 +32,8 @@
             <h5 class="card-title">Complete todos los campos</h5>
             {{ form | crispy }}
 
-            <a href="{% url 'home' %}" class="card-link">Inicio</a>
-            <a href="{% url 'cursos' %}" class="card-link">Cursos</a>
+            <a href="{% url 'principal:home' %}" class="card-link">Inicio</a>
+            <a href="{% url 'principal:cursos' %}" class="card-link">Cursos</a>
             {% if object %}
             <button class="btn btn-warning float-end" type="submit">Actualizar</button>
             {% else %}

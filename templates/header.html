@@ -36,23 +36,23 @@
         </a> 
       </div> 
       <ul class="nav col-12 col-md-auto mb-2 justify-content-center mb-md-0"> 
-        <li><a href="{% url 'home' %}" class="nav-link px-2 text-white">Inicio</a></li>
-        <li><a href="{% url 'cursos' %}" class="nav-link px-2 text-white">Nuestros Cursos</a></li>
+        <li><a href="{% url 'principal:home' %}" class="nav-link px-2 text-white">Inicio</a></li>
+        <li><a href="{% url 'principal:cursos' %}" class="nav-link px-2 text-white">Nuestros Cursos</a></li>
         <li><a href="#" class="nav-link px-2 text-white">Acerca de</a></li> 
       </ul> 
       <div class="col-md-3 text-end">
         {% if request.user.is_authenticated %}
         <li style="list-style-type: none;">
-          <a class="nav-link px-2 text-white" href="{% url 'profile' %}">{{group_name}} | {{user.username}}</a>
+          <a class="nav-link px-2 text-white" href="{% url 'principal:profile' %}">{{group_name}} | {{user.username}}</a>
         </li>
          <!--  {% if group_name == 'Administración' %}
-        <a href="{% url 'logout_view' %}" type="button" class="btn btn-outline-light text-white border-white" style="background-color: #ffcc00;">Cerrar Sesion</a>
+        <a href="{% url 'principal:logout_view' %}" type="button" class="btn btn-outline-light text-white border-white" style="background-color: #ffcc00;">Cerrar Sesion</a>
           {% else %}
-        <a href="{% url 'logout_view' %}" type="button" class="btn btn-outline-light text-white border-white" style="background-color: #dc3545;">Cerrar Sesion</a>
+        <a href="{% url 'principal:logout_view' %}" type="button" class="btn btn-outline-light text-white border-white" style="background-color: #dc3545;">Cerrar Sesion</a>
           {% endif %} -->
         {% else %}
         <a  href="{% url 'login' %}" type="button" class="btn btn-outline-light me-2" >Iniciar Sesion</a>
-        <a href="{% url 'registro' %}" type="button" class="btn btn-light">Registrarse</a> 
+        <a href="{% url 'principal:registro' %}" type="button" class="btn btn-light">Registrarse</a> 
         {% endif %}
 
 

@@ -1,0 +1,122 @@
+{% extends 'base.html' %} {% load static %} {% block content %}
+<div class="container mt-4">
+    <h2>Detalles del Curso Académico: {{ curso_academico.nombre }}</h2>
+    <p><strong>Activo:</strong> {{ curso_academico.activo|yesno:"Sí,No" }}</p>
+    <p><strong>Archivado:</strong> {{ curso_academico.archivado|yesno:"Sí,No" }}</p>
+    <p><strong>Fecha de Creación:</strong> {{ curso_academico.fecha_creacion }}</p>
+
+    <h3>Cursos Asociados</h3>
+    {% if cursos %}
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Nombre del Curso</th>
+                <th>Profesor</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for curso in cursos %}
+            <tr>
+                <td>{{ curso.name }}</td>
+                <td>{{ curso.teacher.get_full_name|default:curso.teacher.username }}</td>
+                <td>{{ curso.get_status_display }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No hay cursos asociados a este curso académico.</p>
+    {% endif %}
+
+    <h3>Matrículas</h3>
+    {% if matriculas %}
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Estudiante</th>
+                <th>Curso</th>
+                <th>Estado Matrícula</th>
+                <th>Fecha Matrícula</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for matricula in matriculas %}
+            <tr>
+                <td>{{ matricula.student.get_full_name|default:matricula.student.username }}</td>
+                <td>{{ matricula.course.name }}</td>
+                <td>{{ matricula.get_estado_display }}</td>
+                <td>{{ matricula.fecha_matricula }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No hay matrículas para este curso académico.</p>
+    {% endif %}
+
+    <h3>Calificaciones</h3>
+    {% if calificaciones %}
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Estudiante</th>
+                <th>Curso</th>
+                <th>Nota 1</th>
+                <th>Nota 2</th>
+                <th>Nota 3</th>
+                <th>Nota 4</th>
+                <th>Nota 5</th>
+                <th>Nota 6</th>
+                <th>Promedio</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for calificacion in calificaciones %}
+            <tr>
+                <td>{{ calificacion.student.get_full_name|default:calificacion.student.username }}</td>
+                <td>{{ calificacion.course.name }}</td>
+                <td>{{ calificacion.nota_1|default:"N/A" }}</td>
+                <td>{{ calificacion.nota_2|default:"N/A" }}</td>
+                <td>{{ calificacion.nota_3|default:"N/A" }}</td>
+                <td>{{ calificacion.nota_4|default:"N/A" }}</td>
+                <td>{{ calificacion.nota_5|default:"N/A" }}</td>
+                <td>{{ calificacion.nota_6|default:"N/A" }}</td>
+                <td>{{ calificacion.average|default:"N/A" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No hay calificaciones para este curso académico.</p>
+    {% endif %}
+
+    <h3>Asistencias</h3>
+    {% if asistencias %}
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Estudiante</th>
+                <th>Curso</th>
+                <th>Fecha</th>
+                <th>Presente</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for asistencia in asistencias %}
+            <tr>
+                <td>{{ asistencia.student.get_full_name|default:asistencia.student.username }}</td>
+                <td>{{ asistencia.course.name }}</td>
+                <td>{{ asistencia.date }}</td>
+                <td>{{ asistencia.presente|yesno:"Sí,No" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No hay registros de asistencia para este curso académico.</p>
+    {% endif %}
+
+    <a href="{% url 'admin:principal_cursoacademico_changelist' %}" class="btn btn-secondary mt-3">Volver a la lista de Cursos Académicos</a>
+</div>
+{% endblock %}

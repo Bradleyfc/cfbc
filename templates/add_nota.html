@@ -14,7 +14,7 @@
                 {% csrf_token %}
                 {{ form.as_p }}
                 <button type="submit" class="btn btn-success">Guardar Calificación</button>
-                <a href="{% url 'student_list_notas' course_id=matricula.course.id %}" class="btn btn-secondary">Cancelar</a>
+                <a href="{% url 'principal:student_list_notas_by_course' course_id=matricula.course.id %}" class="btn btn-secondary">Cancelar</a>
             </form>
         </div>
     </div>

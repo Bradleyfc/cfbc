@@ -1,6 +1,7 @@
 from gc import enable
 from pyexpat import model
 from tabnanny import verbose
+from django.utils import timezone
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -26,20 +27,73 @@ class Curso(models.Model):
         verbose_name = 'Curso'
         verbose_name_plural = 'Cursos'
 
+        
+# Curso y cambio de curso escolar
+
+class CursoAcademico(models.Model):
+    
+    nombre = models.CharField(max_length=50, unique=True)  # Ej: "2025-2026"
+    activo = models.BooleanField(default=False)
+    archivado = models.BooleanField(default=False, verbose_name='Archivado')
+    fecha_creacion = models.DateField(default=timezone.now, verbose_name='Fecha de creación')
+    
+    def archivar(self):
+        """Archiva este curso académico y todas sus matrículas"""
+        self.archivado = True
+        self.activo = False
+        self.save()
+        
+        # También podríamos desactivar todas las matrículas de este curso
+        # Matriculas.objects.filter(curso_academico=self).update(activo=False)
+        
+        return True
+    
+    def activar(self):
+        """Activa este curso y desactiva todos los demás"""
+        # Desactivar todos los cursos
+        CursoAcademico.objects.all().update(activo=False)
+        # Activar este curso
+        self.activo = True
+        self.archivado = False  # Si estaba archivado, lo desarchivamos
+        self.save()
+        return True
+
+    def __str__(self):
+        estado = "(Activo)" if self.activo else "(Inactivo)"
+        if self.archivado:
+            estado = "(Archivado)"
+        return f"{self.nombre} {estado}"
 
 # MATRICULAS
 
 class Matriculas(models.Model):
+    ESTADO_CHOICES = [
+        ('P', 'Pendiente'),
+        ('A', 'Aprobado'),
+        ('R', 'Reprobado'),
+        ('L', 'Licencia'),
+        ('B', 'Baja'),
+    ]
     course = models.ForeignKey(Curso, on_delete=models.CASCADE, verbose_name="Curso")
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='matriculas', limit_choices_to={'groups__name': 'Estudiantes'}, verbose_name='Estudiante')
     activo = models.BooleanField(default=True, verbose_name='Habilitado')
+    curso_academico = models.ForeignKey(CursoAcademico, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Curso Académico')
+    fecha_matricula = models.DateField(auto_now_add=True, verbose_name='Fecha de Matrícula')
+    estado = models.CharField(max_length=1, choices=ESTADO_CHOICES, default='P', verbose_name='Estado')
     
+    @property
+    def esta_aprobado(self):
+        return self.estado == 'A'
+
+
     def __str__(self):
         return f'{self.student.username} - {self.course.name}'
 
     class Meta:
         verbose_name = 'Matricula'
         verbose_name_plural = 'Matriculas'
+        unique_together = [['student', 'course', 'curso_academico']]
+
 
 # ASISTENCIAS    
 
@@ -61,8 +115,10 @@ class Asistencia(models.Model):
 # CALIFICACIONES
 
 class Calificaciones(models.Model):
+    matricula = models.OneToOneField(Matriculas, on_delete=models.CASCADE, related_name='calificaciones', verbose_name='Matrícula', null=True, blank=True)
     course = models.ForeignKey(Curso, on_delete=models.CASCADE, verbose_name="Curso")
     student = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'groups__name': 'Estudiantes'}, verbose_name='Estudiante') 
+    curso_academico = models.ForeignKey(CursoAcademico, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Curso Académico')
     # para 6 evaluaciones
     nota_1 = models.PositiveIntegerField(null=True, blank=True, verbose_name='Nota 1')
     nota_2 = models.PositiveIntegerField(null=True, blank=True, verbose_name='Nota 2')
@@ -71,6 +127,7 @@ class Calificaciones(models.Model):
     nota_5 = models.PositiveIntegerField(null=True, blank=True, verbose_name='Nota 5')
     nota_6 = models.PositiveIntegerField(null=True, blank=True, verbose_name='Nota 6')
     average = models.DecimalField(max_digits=3, decimal_places=1, null=True, blank=True, verbose_name='Promedio', editable='False')
+
 
     def __str__(self):
         return str(self.course)
@@ -94,10 +151,7 @@ class Calificaciones(models.Model):
     class Meta:
         verbose_name= 'Calificacion'
         verbose_name_plural= 'Calificaciones'
-
-
-    class Meta:
-        unique_together = ('course', 'student')
+        unique_together = ('course', 'student', 'curso_academico')
       
 
 
