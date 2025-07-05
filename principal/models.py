@@ -101,8 +101,13 @@ class Asistencia(models.Model):
     course = models.ForeignKey(Curso, on_delete=models.CASCADE, verbose_name="Curso")
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='asistencias', limit_choices_to={'groups__name': 'Estudiantes'}, verbose_name='Estudiante') 
     presente = models.BooleanField(default=False, blank=True, null=True, verbose_name='Asistió')
-    date = models.DateField(null=True, blank=True, verbose_name='Fecha')  
+    date = models.DateField(null=False, blank=False, verbose_name='Fecha')
     
+    class Meta:
+        unique_together = ('student', 'date', 'course')
+
+    def __str__(self):
+        return f"Asistencia de {self.student.first_name} {self.student.last_name} en {self.course.nombre} el {self.date}"
 
     def __str__(self):
         return f'Asistencia {self.id}'

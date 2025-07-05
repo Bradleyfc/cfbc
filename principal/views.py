@@ -9,6 +9,9 @@ from django.contrib import messages
 from .forms import CustomUserCreationForm, CourseForm, CalificacionesForm
 from django.contrib.auth.models import Group, User
 from django.db.models import Q
+from datetime import date, datetime # Añade 'datetime' aquí
+from django.db.models import Q, Max # Asegúrate de que 'Max' esté importado
+
 # Create your views here.
 
 from django.views.generic import DetailView
@@ -580,4 +583,168 @@ def historico_alumno(request, student_id):
         matriculas = Matriculas.objects.filter(student_id=student_id).select_related('curso_academico')
         return render(request, 'historico.html', {'matriculas': matriculas})
 
+
+# Agregando asistencias
+
+class AsistenciaView(BaseContextMixin, TemplateView):
+    template_name = 'asistencias.html'
+    
+    @override
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        course_id = kwargs['course_id']
+        course = get_object_or_404(Curso, id=course_id)
+        
+        # Obtener el curso académico activo
+        curso_academico_activo = CursoAcademico.objects.filter(activo=True).first()
+        
+        # Filtrar asistencias por curso y ordenar por fecha descendente
+        asistencias = Asistencia.objects.filter(
+            course=course,
+            student__matriculas__curso_academico=curso_academico_activo,
+            student__matriculas__activo=True
+        ).select_related('student', 'course').order_by('-date')
+        
+        # Obtener todas las matrículas activas para este curso en el curso académico activo
+        matriculas = Matriculas.objects.filter(
+            course=course,
+            activo=True,
+            curso_academico=curso_academico_activo
+        ).select_related('student')  # Optimizar consulta de estudiantes
+        
+        # Filtrar por fecha si se proporciona en la solicitud
+        fecha_filtro = self.request.GET.get('fecha')
+        if fecha_filtro:
+            asistencias = asistencias.filter(date=fecha_filtro)
+        
+        # Calcular la cantidad de asistencias registradas (fechas únicas)
+        asistencias_registradas = Asistencia.objects.filter(course=course).values('date').distinct().count()
+        
+        # Obtener la cantidad total de clases del curso
+        cantidad_total_clases = course.class_quantity
+        
+        # Calcular las clases restantes
+        clases_restantes = cantidad_total_clases - asistencias_registradas
+
+        context['course'] = course
+        context['asistencias'] = asistencias
+        context['matriculas'] = matriculas
+        context['curso_academico'] = curso_academico_activo
+        context['cantidad_total_clases'] = cantidad_total_clases
+        context['asistencias_registradas'] = asistencias_registradas
+        context['clases_restantes'] = clases_restantes
+        return context
+
+
+class AddAsistenciaView(LoginRequiredMixin, TemplateView):
+    template_name='add_asistencias.html'
+
+    @override
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        course_id = kwargs['course_id']
+        course = Curso.objects.get(id=course_id)
+        matriculas = Matriculas.objects.filter(course=course)
+        # Obtener las asistencias existentes para este curso
+        asistencias = Asistencia.objects.order_by('date')
+        context['course'] = course
+        context['matriculas'] = matriculas
+        context['asistencias'] = asistencias
+        context['today'] = date.today()
+        return context
+
+    def post(self, request, course_id):
+        course = Curso.objects.get(id=course_id)
+        matriculas = Matriculas.objects.filter(course=course)
+
+        if request.method == 'POST':
+            date = request.POST.get('date')
+
+            for matricula in matriculas:
+                absent = request.POST.get('asistencia_' + str(matricula.id))
+                # Buscar si ya existe un registro de asistencia para este estudiante en esta fecha
+                asistencia, created = Asistencia.objects.get_or_create(
+                    student=matricula.student,
+                    course=course,
+                    date=date,
+                    defaults={'presente': not bool(absent)}
+                )
+                # Si el registro ya existía, actualizar el estado de presente
+                if not created:
+                    asistencia.presente = not bool(absent)
+                    asistencia.save()
+        # Redirigir a la misma página para mostrar las asistencias actualizadas
+        return redirect('principal:asistencias', course_id=course_id)
+
+
+# Eliminar asistencia
+def eliminar_asistencia(request, asistencia_id):
+    # Obtener la asistencia o devolver 404 si no existe
+    asistencia = get_object_or_404(Asistencia, id=asistencia_id)
+    
+    # Guardar el ID del curso antes de eliminar la asistencia
+    course_id = asistencia.course.id
+    
+    # Eliminar la asistencia
+    asistencia.delete()
+    
+    # Redirigir a la página de asistencias del curso
+    return redirect('principal:asistencias', course_id=course_id)
+
+
+def add_asistencias(request, course_id):
+    course = get_object_or_404(Curso, id=course_id)
+    matriculas = Matriculas.objects.filter(course=course, activo=True)
+
+    if request.method == 'POST':
+        date_str = request.POST.get('date')
+        try:
+            attendance_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            messages.error(request, "Formato de fecha inválido.")
+            return redirect('principal:add_asistencias', course_id=course.id)
+
+        # Eliminar asistencias existentes para esta fecha y curso
+        Asistencia.objects.filter(course=course, date=attendance_date).delete()
+
+        for matricula in matriculas:
+            is_absent = request.POST.get(f'asistencia_{matricula.id}')
+            presente = not bool(is_absent) # Si está marcado, significa que está ausente, por lo tanto, no presente
+
+            Asistencia.objects.create(
+                course=course,
+                student=matricula.student,
+                date=attendance_date,
+                presente=presente
+            )
+        messages.success(request, "Asistencias guardadas correctamente.")
+        return redirect('principal:asistencias', course_id=course.id) # Redirige a la página de asistencias del curso
+    
+    today = date.today()
+    context = {
+        'course': course,
+        'matriculas': matriculas,
+        'today': today,
+    }
+    return render(request, 'add_asistencias.html', context)
+
+
+@login_required
+def undo_last_asistencia(request, course_id):
+    course = get_object_or_404(Curso, id=course_id)
+
+    # Encontrar la fecha más reciente para la que se registró asistencia en este curso
+    latest_attendance_date_obj = Asistencia.objects.filter(course=course).aggregate(Max('date'))
+    latest_attendance_date = latest_attendance_date_obj['date__max']
+
+    if latest_attendance_date:
+        # Eliminar todos los registros de asistencia para este curso en la fecha más reciente
+        Asistencia.objects.filter(course=course, date=latest_attendance_date).delete()
+        messages.success(request, f"La asistencia del {latest_attendance_date.strftime('%d-%m-%Y')} ha sido deshecha correctamente.")
+    else:
+        messages.info(request, "No hay asistencias registradas para deshacer en este curso.")
+
+    return redirect('principal:asistencias', course_id=course.id)
+
+    
 

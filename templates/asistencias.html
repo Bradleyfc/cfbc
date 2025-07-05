@@ -1,0 +1,142 @@
+{% extends 'base.html' %} {% load static %} {% block content %}
+{% load custom_filters %}
+<div class="container mt-4">
+    <h2 class="mb-4">Asistencias para el curso: {{ course.name }}</h2>
+    <p><strong>Curso académico:</strong> {{ curso_academico.nombre }}</p>
+
+    
+
+    <!-- Filtro por fecha -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Filtrar asistencias</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" class="form-inline">
+                <div class="form-group mr-3">
+                    <label for="fecha" class="mr-2">Fecha:</label>
+                    <input type="date" name="fecha" id="fecha" class="form-control" value="{{ request.GET.fecha }}">
+                </div>
+                <button type="submit" class="btn btn-primary ml-2">Filtrar</button>
+                <a href="{% url 'principal:asistencias' course.id %}" class="btn btn-secondary ml-2">Limpiar filtros</a>
+            </form>
+        </div>
+    </div>
+
+
+
+    <!-- Contador de asistencias totales y restantes -->
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Información de Asistencias</h5>
+        </div>
+        <div class="card-body d-flex justify-content-around align-items-center flex-wrap">
+            <p class="mb-0"><strong>Cantidad de Clases del Curso:</strong> {{ cantidad_total_clases }}</p>
+            <p class="mb-0"><strong>Asistencias Registradas:</strong> {{ asistencias_registradas }}</p>
+            <p class="mb-0"><strong>Asistencias Restantes:</strong> {{ clases_restantes }}</p>
+        </div>
+    </div>
+
+    <!-- Tabla de asistencias -->
+    <div class="card">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Registro de Asistencias</h5>
+            <a href="{% url 'principal:add_asistencias' course.id %}" class="btn btn-light">Agregar asistencia</a>
+            <a href="{% url 'principal:undo_last_asistencia' course_id=course.id %}" class="btn btn-danger" onclick="return confirm('¿Estás seguro de que quieres deshacer la última asistencia guardada para este curso? Esto eliminará todas las asistencias de la fecha más reciente.');">Deshacer Última Asistencia</a>
+        </div>
+        <div class="card-body">
+            {% if asistencias %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Estudiante</th>
+                            {% regroup asistencias by date as asistencias_por_fecha %}
+                            {% for fecha in asistencias_por_fecha %}
+                                <th>{{ fecha.grouper|date:"d/m/Y" }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for matricula in matriculas %}
+                        <tr>
+                            <td>{{ matricula.student.get_full_name|default:matricula.student.username }}</td>
+                            {% for fecha in asistencias_por_fecha %}
+                                <td>
+                                    {% with asistencia=asistencias|filter_asistencia:matricula.student.id|filter_by_date:fecha.grouper %}
+                                        {% if asistencia %}
+                                            {% if asistencia.presente %}
+                                                <span class="text-success">✓ Presente</span>
+                                            {% else %}
+                                                <span class="text-danger">✗ Ausente</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                No hay registros de asistencia para este curso{% if request.GET.fecha %} en la fecha seleccionada{% endif %}.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Resumen de asistencias por estudiante -->
+    <div class="card mt-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Resumen de asistencias por estudiante</h5>
+        </div>
+        <div class="card-body">
+            {% if matriculas %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Estudiante</th>
+                            <th>Total de asistencias</th>
+                            <th>Total de ausencias</th>
+                            <th>Porcentaje de asistencia</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for matricula in matriculas %}
+                            <tr>
+                                <td>{{ matricula.student.get_full_name|default:matricula.student.username }}</td>
+                                {% with student_asistencias=matricula.student.asistencias.all %}
+                                    {% with presentes=student_asistencias|filter_present_for_course:course %}
+                                    {% with total=student_asistencias|filter_total_for_course:course %}
+                                        <td>{{ presentes }}</td>
+                                        <td>{{ total|subtract:presentes }}</td>
+                                        <td>
+                                            {% if total > 0 %}
+                                                {% widthratio presentes total 100 %}%
+                                            {% else %}
+                                                N/A
+                                            {% endif %}
+                                        </td>
+                                    {% endwith %}
+                                    {% endwith %}
+                                {% endwith %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                No hay estudiantes matriculados en este curso.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

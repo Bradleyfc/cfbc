@@ -26,4 +26,8 @@ urlpatterns = [
     path('cursos/eliminar/<int:curso_id>/', views.eliminar_curso, name='eliminar_curso'),
     path('cursos/<int:course_id>/', views.StudentListNotasView.as_view(), name='student_list_notas_by_course'),
     path('matricula/<int:matricula_id>/add_nota/', views.AddNotaView.as_view(), name='add_nota'),
+    path('cursos/<int:course_id>/asistencias/', views.AsistenciaView.as_view(), name='asistencias'),
+    path('cursos/<int:course_id>/addasistencias/', views.AddAsistenciaView.as_view(),name='add_asistencias' ),
+    path('asistencias/eliminar/<int:asistencia_id>/', views.eliminar_asistencia, name='eliminar_asistencia'),
+    path('asistencias/<int:course_id>/undo/', views.undo_last_asistencia, name='undo_last_asistencia'),
 ]

@@ -1,14 +1,22 @@
 <h5>
   Cursos Asignados {% if assigned_courses %}
+  
   <ul class="list-group">
     {% for course in assigned_courses %}
      {% with enrollment_count=course.matriculas_set.count %}
         <li class="list-group-item">
          {{course.name}}
-         <a href="{% url 'principal:student_list_notas_by_course' course_id=course.id %}" class="btn btn-sm btn-warning float-end">
-          Notas
+         <a href="{% url 'principal:asistencias' course_id=course.id %}" class="btn btn-sm btn-warning float-end ">
+          Ver Asistencias
+         </a>
+         
+         
+         
+         <a href="{% url 'principal:student_list_notas_by_course' course_id=course.id %}" class="btn btn-sm btn-warning float-end me-3">
+          Agregar Notas
          <span class="badge rounded-pill bg-light text-danger">{{enrollment_count}}</span>
          </a>
+        
         </li>
         {% endwith %} 
     {% endfor %}
