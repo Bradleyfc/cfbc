@@ -1,15 +1,18 @@
-from gc import enable
-from pyexpat import model
-from tabnanny import verbose
 from django.utils import timezone
 from django.db import models
 from django.contrib.auth.models import User
+from accounts.models import Registro
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
+from datetime import date
+from decimal import Decimal
 
 # Create your models here.
 # CURSOS
 class Curso(models.Model):
     STATUS_CHOICES = [
-        ('I', 'En etapa de inscripcion'),
+        ('I', 'En etapa de inscripción'),
+        ('IT', 'Plazo de Inscripción Terminado'),
         ('P', 'En progreso'),
         ('F', 'Finalizado'),
     ]
@@ -19,6 +22,8 @@ class Curso(models.Model):
     teacher = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'groups__name': 'Profesores'}, verbose_name='Profesor')
     class_quantity = models.PositiveIntegerField(default=0, verbose_name='Catidad de Clases')
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='I', verbose_name='Estado')
+    enrollment_deadline = models.DateField(verbose_name='Fecha límite de inscripción', null=True, blank=True)
+    start_date = models.DateField(verbose_name='Fecha de inicio del curso', null=True, blank=True)
 
     def __str__(self):
         return self.name
@@ -124,14 +129,8 @@ class Calificaciones(models.Model):
     course = models.ForeignKey(Curso, on_delete=models.CASCADE, verbose_name="Curso")
     student = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'groups__name': 'Estudiantes'}, verbose_name='Estudiante') 
     curso_academico = models.ForeignKey(CursoAcademico, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Curso Académico')
-    # para 6 evaluaciones
-    nota_1 = models.PositiveIntegerField(null=True, blank=True, verbose_name='Nota 1')
-    nota_2 = models.PositiveIntegerField(null=True, blank=True, verbose_name='Nota 2')
-    nota_3 = models.PositiveIntegerField(null=True, blank=True, verbose_name='Nota 3')
-    nota_4 = models.PositiveIntegerField(null=True, blank=True, verbose_name='Nota 4')
-    nota_5 = models.PositiveIntegerField(null=True, blank=True, verbose_name='Nota 5')
-    nota_6 = models.PositiveIntegerField(null=True, blank=True, verbose_name='Nota 6')
-    average = models.DecimalField(max_digits=3, decimal_places=1, null=True, blank=True, verbose_name='Promedio', editable='False')
+    # Las notas individuales ahora se manejarán a través del modelo NotaIndividual
+    average = models.DecimalField(max_digits=3, decimal_places=1, null=True, blank=True, verbose_name='Promedio', editable=False)
 
 
     def __str__(self):
@@ -140,23 +139,53 @@ class Calificaciones(models.Model):
 # Calcular el promedio 
 
     def calcular_promedio(self):
-        notas = [self.nota_1, self.nota_2, self.nota_3, self.nota_4, self.nota_5, self.nota_6 ]
-        notas_validas = [nota for nota in notas if nota is not None]
+        # Obtener todas las notas individuales relacionadas con esta calificación
+        notas_individuales = self.notas.all()
+        notas_validas = [nota.valor for nota in notas_individuales if nota.valor is not None]
         if notas_validas:
             return sum(notas_validas) / len(notas_validas)
         return None
 
 
     def save(self, *args, **kwargs):
-    #verificando si alguna nota cambio
-        if self.nota_1 or self.nota_2 or self.nota_3 or self.nota_4 or self.nota_5 or self.nota_6:
-         self.average = self.calcular_promedio()
+        # Save the instance first to ensure it has a primary key
         super().save(*args, **kwargs)
+        
+        # Now that the instance has a PK, calculate the average
+        # and update the average field if it has changed
+        old_average = self.average
+        calculated_average = self.calcular_promedio()
+        if calculated_average is not None:
+            self.average = Decimal(str(calculated_average))
+        else:
+            self.average = None
+        
+        super().save(update_fields=['average'])
 
     class Meta:
         verbose_name= 'Calificacion'
         verbose_name_plural= 'Calificaciones'
         unique_together = ('course', 'student', 'curso_academico')
+      
+
+class NotaIndividual(models.Model):
+    calificacion = models.ForeignKey(Calificaciones, on_delete=models.CASCADE, related_name='notas', verbose_name='Calificación')
+    valor = models.PositiveIntegerField(verbose_name='Valor de la Nota')
+    fecha_creacion = models.DateField(auto_now_add=True, verbose_name='Fecha de Creación')
+
+    def __str__(self):
+        return f"Nota {self.valor} para {self.calificacion.student.username} en {self.calificacion.course.name}"
+
+    class Meta:
+        verbose_name = 'Nota Individual'
+        verbose_name_plural = 'Notas Individuales'
+        ordering = ['fecha_creacion'] # Opcional: ordenar notas por fecha
+
+@receiver(post_save, sender=NotaIndividual)
+@receiver(post_delete, sender=NotaIndividual)
+def update_calificaciones_average(sender, instance, **kwargs):
+    calificacion = instance.calificacion
+    calificacion.save() # This will trigger the calcular_promedio and update the average
       
 
 

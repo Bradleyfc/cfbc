@@ -17,4 +17,21 @@ from .models import Matriculas , Calificaciones
 #             average=0
 #         )
 
+from django.db.models.signals import pre_save
+from django.utils import timezone
+from .models import Curso
+
+@receiver(pre_save, sender=Curso)
+def update_course_status(sender, instance, **kwargs):
+    if instance.enrollment_deadline:
+        if instance.enrollment_deadline < timezone.now().date() and instance.status == 'I':
+            instance.status = 'IT'
+
+
+@receiver(pre_save, sender=Curso)
+def update_course_status(sender, instance, **kwargs):
+    if instance.start_date:
+        if instance.start_date <= timezone.now().date() and instance.status == 'IT':
+            instance.status = 'P'
+
 

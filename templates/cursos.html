@@ -5,12 +5,19 @@
   </div>
 <br />
 <div class="container" my-4>
-  <h3>Listado de Cursos Disponibles</h3>
+  
  
   
   {% if group_name == 'Secretaría' %}
+  <h3>Administrar los Cursos Disponibles</h3>
+  <br>
   <a class="btn btn-primary" href="{% url 'principal:crear_cursos'%}">Agregar Curso</a>
+  {% else %}
+  <h3>Listado de Cursos Disponibles</h3>
+
   {% endif %}
+
+  
 
   <!-- Mensaje de creacion -->
 <!-- 
@@ -47,14 +54,44 @@
             <strong>Cantidad de Clases:</strong> {{course.class_quantity}}
           </p>
           <p class="card-text"><strong>Cantidad de Inscritos:</strong> {{course.enrollment_count}}</p>
+          
+          <!-- Agregando fecha límite de inscripción -->
+          {% if course.enrollment_deadline %}
+          <p class="card-text">
+            <strong>Fecha límite de inscripción:</strong> {{course.enrollment_deadline|date:"d/m/Y"}}
+          </p>
+          {% endif %}
 
+           <!-- Agregando fecha de inicio del curso -->
+           {% if course.start_date and course.status != 'P' and course.status != 'F' %}
+           <p class="card-text">
+             <strong>Fecha de inicio del Curso:</strong> {{course.start_date|date:"d/m/Y"}}
+           </p>
+           {% endif %}
             
             
-            {% if group_name == 'Estudiantes' and not course.is_enrolled %}
-            <a class="btn btn-sm btn-success" href="{% url 'principal:inscribirse_curso' course.id %}">Aplicar al Curso</a>
-            {% elif group_name == 'Estudiantes' and course.is_enrolled %}
-            <p>Ya estas inscrito</p>
-            {% endif %}
+           
+
+            <!-- Agregando la informacion del curso  -->
+             {% if course.status == 'F' %}
+             <h5><span class="badge bg-danger w-100" >{{course.get_status_display|upper}}</span></h5>
+             {% elif course.status == 'P' %}
+             <h5><span class="badge bg-warning text-dark w-100" >{{course.get_status_display|upper}}</span></h5>
+             {% elif course.status == 'I' %}
+             <h5><span class="badge bg-success w-100" >{{course.get_status_display|upper}}</span></h5>
+             {% elif course.status == 'IT' %}
+             <h5><span class="badge bg-info w-100" >{{course.get_status_display|upper}}</span></h5>
+             {% endif %}
+
+
+             <!-- Boton de aplicar al curso  -->
+             {% if group_name == 'Estudiantes' and not course.is_enrolled and course.status == 'I' %}
+             <a class="btn btn-sm btn-success" href="{% url 'principal:inscribirse_curso' course.id %}">Aplicar al Curso</a>
+             {% elif group_name == 'Estudiantes' and course.is_enrolled  %}
+             <p class="fw-bold bg-light text-center">Ya estás inscrito</p>
+             {% endif %}
+
+
             
             {% if group_name == 'Secretaría' %}
             <a class="btn btn-sm btn-warning" href="{% url 'principal:editar_curso' course.id %}">Editar</a>

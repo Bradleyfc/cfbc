@@ -1,5 +1,5 @@
 from django.contrib import admin
-from.models import Curso, Matriculas, Asistencia, Calificaciones, CursoAcademico
+from.models import Curso, Matriculas, Asistencia, Calificaciones, CursoAcademico, NotaIndividual # Importa NotaIndividual
 # Register your models here.
 
 class CursoAdmin(admin.ModelAdmin):
@@ -52,10 +52,21 @@ class AsistenciaAdmin(admin.ModelAdmin):
 admin.site.register(Asistencia, AsistenciaAdmin)   
 
 
+class NotaIndividualInline(admin.TabularInline):
+    model = NotaIndividual
+    extra = 1 # Permite añadir una nota individual extra por defecto
+
 class CalificacionesAdmin(admin.ModelAdmin):
-    list_display= ('course' , 'student', 'nota_1', 'nota_2', 'nota_3', 'nota_4', 'nota_5', 'nota_6', 'average')
+    list_display= ('course' , 'student', 'average', 'display_notas_individuales') # Actualiza list_display
     list_filter = ('course', )
     exclude=('average',)
+    inlines = [NotaIndividualInline] # Añade el inline para NotaIndividual
+
+    def display_notas_individuales(self, obj):
+        # Muestra las notas individuales como una lista en el admin
+        notas = obj.notas.all().order_by('id')
+        return ", ".join([f"{n.valor}" for n in notas])
+    display_notas_individuales.short_description = 'Notas Individuales'
 
 admin.site.register(Calificaciones, CalificacionesAdmin)  
 

@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Asistencias de {{ student.first_name }} {{ student.last_name }} en {{ course.name }}</h2>
+
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Registro de Asistencias</h5>
+        </div>
+        <div class="card-body">
+            {% if asistencias %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for asistencia in asistencias %}
+                        <tr>
+                            <td>{{ asistencia.date|date:"d/m/Y" }}</td>
+                            <td>
+                                {% if asistencia.presente %}
+                                    <span class="text-success">✓ Presente</span>
+                                {% else %}
+                                    <span class="text-danger">✗ Ausente</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                No hay registros de asistencia para este curso. ({{ course.name }})
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    <a href="{% url 'principal:profile' %}" class="btn btn-secondary mt-3">Volver al Perfil</a>
+</div>
+{% endblock %}

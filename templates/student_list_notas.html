@@ -21,37 +21,35 @@
                 <th scope="col">Estudiante</th>
                 <th scope="col">Curso</th>
                 <!-- <th scope="col">Profesor</th> -->
-                <th scope="col">Evaluación 1</th>
-                <th scope="col">Evaluación 2</th>
-                <th scope="col">Evaluación 3</th>
-                <th scope="col">Evaluación 4</th>
-                <th scope="col">Evaluación 5</th>
-                <th scope="col">Evaluación 6</th>
+                {% comment %}
+                Las columnas de Evaluación fijas se eliminan y se generan dinámicamente.
+                {% endcomment %}
+                {% if student_data %}
+                    {% for _ in student_data.0.notas %}
+                        <th scope="col">Nota</th>
+                    {% endfor %}
+                {% endif %}
                 <th scope="col">Promedio</th>
                 <th scope="col">Acciones</th>
             </tr>
         </thead>
         <tbody>
-            {% for matricula in matriculas %}
+            {% for data in student_data %}
             <tr>
-                <td>{{ matricula.student.first_name }} {{ matricula.student.last_name }} ({{ matricula.student.username }})</td>
-                <td>{{ matricula.course.name }}</td>
-                <!-- <td>{{ matricula.course.teacher.first_name }} {{ matricula.course.teacher.last_name }}</td> -->
-                <td>{{ matricula.calificaciones.nota_1|default:"N/A" }}</td>
-                <td>{{ matricula.calificaciones.nota_2|default:"N/A" }}</td>
-                <td>{{ matricula.calificaciones.nota_3|default:"N/A" }}</td>
-                <td>{{ matricula.calificaciones.nota_4|default:"N/A" }}</td>
-                <td>{{ matricula.calificaciones.nota_5|default:"N/A" }}</td>
-                <td>{{ matricula.calificaciones.nota_6|default:"N/A" }}</td>
-                <td><strong>{{ matricula.calificaciones.average|default:"N/A" }}</strong></td>
+                <td>{{ data.name }}</td>
+                <td>{{ course.name }}</td> {# Asumiendo que 'course' está en el contexto para el nombre del curso #}
+                {% for nota in data.notas %}
+                    <td>{{ nota|default:"N/A" }}</td>
+                {% endfor %}
+                <td><strong>{{ data.average|default:"N/A" }}</strong></td>
                 <td>
-                    <a href="{% url 'principal:add_nota' matricula_id=matricula.pk %}" class="btn btn-sm btn-primary">Agregar Nota</a>
-                    <!-- <a href="{% url 'principal:historico_alumno' student_id=matricula.student.pk %}" class="btn btn-sm btn-info">Histórico</a> -->
+                    <a href="{% url 'principal:add_nota' matricula_id=data.matricula_id %}" class="btn btn-sm btn-primary">Agregar/Editar Nota</a>
+                    <!-- <a href="{% url 'principal:historico_alumno' student_id=data.student_id %}" class="btn btn-sm btn-info">Histórico</a> -->
                 </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="11">No se encontraron matrículas.</td>
+                <td colspan="5">No se encontraron matrículas o notas para este curso.</td>
             </tr>
             {% endfor %}
         </tbody>

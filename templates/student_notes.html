@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">Notas del Estudiante {{ student.first_name }} {{ student.last_name }} en {{ course.name }}</h2>
+
+    {% if all_notes %}
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Promedio General: <span class="badge bg-primary px-3 py-1.5 text-center">{{ average_score|floatformat:2 }}</span></h5>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+
+                        <th>Nota</th>
+                        <th>Fecha</th>
+                        <!-- Add more headers for additional notes if applicable -->
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for nota in all_notes %}
+                    <tr>
+                        <td>{{ nota.valor|floatformat:2|default:"N/A" }}</td>
+                        <td>{{ nota.fecha_creacion|date:"d/m/Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info" role="alert">
+        No hay notas disponibles para este curso.
+    </div>
+    {% endif %}
+
+    <a href="{% url 'principal:profile' %}" class="btn btn-secondary mt-3">Volver al Perfil</a>
+</div>
+{% endblock %}

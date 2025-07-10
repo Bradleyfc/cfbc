@@ -1,12 +1,13 @@
 from typing import override
 from django.contrib.auth.forms import UserCreationForm
+from django.views import View
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
 from django.contrib.auth import logout
 from django.contrib import messages
-from .forms import CustomUserCreationForm, CourseForm, CalificacionesForm
+from .forms import CustomUserCreationForm, CourseForm, CalificacionesForm, NotaIndividualFormSet # Importa NotaIndividualFormSet
 from django.contrib.auth.models import Group, User
 from django.db.models import Q
 from datetime import date, datetime # Añade 'datetime' aquí
@@ -43,7 +44,7 @@ class CursoAcademicoDetailView(DetailView):
         context['asistencias'] = Asistencia.objects.filter(course__matriculas__curso_academico=curso_academico).distinct()
 
         return context
-from django.views.generic import TemplateView, CreateView, ListView
+from django.views.generic import TemplateView, CreateView, ListView, View
 from .models import Calificaciones, Curso, Matriculas, CursoAcademico
 from django.views.generic.edit import UpdateView
 from django.contrib.auth.mixins import LoginRequiredMixin # Importar LoginRequiredMixin
@@ -155,7 +156,7 @@ class LoginRedirectView(LoginRequiredMixin, TemplateView):
     def get(self, request, *args, **kwargs):
         user = request.user
         if user.is_authenticated:
-            if user.groups.filter(name='Profesores').exists() or user.groups.filter(name='Administración').exists():
+            if user.groups.filter(name='Profesores').exists() or user.groups.filter(name='Administración').exists() or user.groups.filter(name='Secretaría').exists():
                 return redirect('principal:profile')  # Redirige a la página de perfil del profesor o el admin
             else:
                 return redirect('principal:cursos')  # Redirige a la página de cursos para otros usuarios
@@ -178,10 +179,219 @@ class ProfileView(BaseContextMixin, TemplateView):
             # Obtener todos los cursos asignados al profesor
             assigned_courses = Curso.objects.filter(teacher=user)
             context['assigned_courses'] = assigned_courses
+        elif user.groups.first().name == 'Estudiantes':
+            # Obtener los cursos en los que el estudiante está inscrito
+            enrolled_courses = Curso.objects.filter(matriculas__student=user)
+            context['enrolled_courses'] = enrolled_courses
 
         return context
 
 # Vista de los Cursos
+
+
+class MatriculasListView(BaseContextMixin, ListView):
+    model = Matriculas
+    template_name = 'matriculas_list.html'
+    context_object_name = 'matriculas'
+    paginate_by = 10
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        # Filtering by CursoAcademico
+        curso_academico_id = self.request.GET.get('curso_academico')
+        if curso_academico_id:
+            queryset = queryset.filter(curso_academico__id=curso_academico_id)
+
+        # Filtering by Curso
+        curso_id = self.request.GET.get('curso')
+        if curso_id:
+            queryset = queryset.filter(course__id=curso_id)
+
+        # Filtering by Estudiante
+        student_id = self.request.GET.get('student')
+        if student_id:
+            queryset = queryset.filter(student__id=student_id)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['cursos_academicos'] = CursoAcademico.objects.all()
+        context['cursos'] = Curso.objects.all()
+        context['estudiantes'] = User.objects.filter(groups__name='Estudiantes')
+        return context
+
+
+# Vistas para Calificaciones
+class CalificacionesListView(BaseContextMixin, ListView):
+    model = Calificaciones
+    template_name = 'calificaciones_list.html'
+    context_object_name = 'calificaciones'
+    paginate_by = 10
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        # Filtering by CursoAcademico
+        curso_academico_id = self.request.GET.get('curso_academico')
+        if curso_academico_id:
+            queryset = queryset.filter(curso_academico__id=curso_academico_id)
+
+        # Filtering by Curso
+        curso_id = self.request.GET.get('curso')
+        if curso_id:
+            queryset = queryset.filter(course__id=curso_id)
+
+        # Filtering by Estudiante
+        student_id = self.request.GET.get('student')
+        if student_id:
+            queryset = queryset.filter(student__id=student_id)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['cursos_academicos'] = CursoAcademico.objects.all()
+        context['cursos'] = Curso.objects.all()
+        context['estudiantes'] = User.objects.filter(groups__name='Estudiantes')
+        return context
+
+
+class StudentCourseAttendanceView(BaseContextMixin, ListView):
+    model = Asistencia
+    template_name = 'student_asistencias.html'
+    context_object_name = 'asistencias'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        student_id = self.kwargs['student_id']
+        course_id = self.kwargs['course_id']
+        queryset = queryset.filter(student__id=student_id, course__id=course_id)
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        student_id = self.kwargs['student_id']
+        course_id = self.kwargs['course_id']
+        context['student'] = User.objects.get(id=student_id)
+        context['course'] = Curso.objects.get(id=course_id)
+        context['student'] = User.objects.get(id=student_id)
+        return context
+
+
+# Vistas para Asistencias
+class AsistenciasListView(ListView):
+    model = Asistencia
+    template_name = 'asistencias_list.html'
+    context_object_name = 'asistencias'
+    paginate_by = 10
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        # Filtrar por Curso Académico
+        curso_academico_id = self.request.GET.get('curso_academico')
+        if curso_academico_id:
+            queryset = queryset.filter(course__curso_academico__id=curso_academico_id)
+
+        # Filtrar por Curso
+        curso_id = self.request.GET.get('curso')
+        if curso_id:
+            queryset = queryset.filter(course__id=curso_id)
+
+        # Filtrar por Estudiante
+        estudiante_id = self.request.GET.get('estudiante')
+        if estudiante_id:
+            queryset = queryset.filter(student__id=estudiante_id)
+
+        # Filtrar por Fecha
+        fecha_asistencia = self.request.GET.get('fecha')
+        if fecha_asistencia:
+            queryset = queryset.filter(date=fecha_asistencia)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['cursos_academicos'] = CursoAcademico.objects.all()
+        context['cursos'] = Curso.objects.all()
+        context['estudiantes'] = User.objects.filter(groups__name='Estudiantes')
+        context['selected_curso_academico'] = self.request.GET.get('curso_academico')
+        
+        # Calcular porcentaje de asistencia cuando se filtra por curso y estudiante
+        curso_id = self.request.GET.get('curso')
+        estudiante_id = self.request.GET.get('estudiante')
+        
+        if curso_id and estudiante_id:
+            # Obtener todas las asistencias del estudiante en el curso
+            total_asistencias = Asistencia.objects.filter(course_id=curso_id, student_id=estudiante_id).count()
+            presentes = Asistencia.objects.filter(course_id=curso_id, student_id=estudiante_id, presente=True).count()
+            
+            if total_asistencias > 0:
+                porcentaje = (presentes / total_asistencias) * 100
+                context['porcentaje_asistencia'] = round(porcentaje, 2)
+                context['total_asistencias'] = total_asistencias
+                context['presentes'] = presentes
+                context['ausentes'] = total_asistencias - presentes
+        context['selected_curso'] = self.request.GET.get('curso')
+        context['selected_estudiante'] = self.request.GET.get('estudiante')
+        context['selected_fecha'] = self.request.GET.get('fecha')
+        return context
+
+
+class StudentCourseNotesView(BaseContextMixin, ListView):
+    model = Calificaciones
+    template_name = 'student_notes.html'  # New template for student notes
+    context_object_name = 'calificaciones'
+
+    def get_queryset(self):
+        student_id = self.kwargs['student_id']
+        course_id = self.kwargs['course_id']
+        # Filter grades for the specific student and course
+        return Calificaciones.objects.filter(student__id=student_id, course__id=course_id)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        student_id = self.kwargs['student_id']
+        course_id = self.kwargs['course_id']
+
+        student = User.objects.get(id=student_id)
+        course = Curso.objects.get(id=course_id)
+
+        context['student'] = student
+        context['course'] = course
+
+        print(f"[DEBUG] StudentCourseNotesView - student_id: {student_id}, course_id: {course_id}")
+
+        # Get all Calificaciones for the student and course
+        calificaciones_for_student_course = Calificaciones.objects.filter(
+            student=student,
+            course=course
+        )
+        print(f"[DEBUG] Calificaciones found: {calificaciones_for_student_course.count()}")
+
+        all_notes = []
+        total_score = 0
+        num_grades = 0
+
+        for calificacion in calificaciones_for_student_course:
+            print(f"[DEBUG] Processing Calificacion ID: {calificacion.id}")
+            for nota in calificacion.notas.all():
+                print(f"[DEBUG] Adding Nota: {nota.valor} (ID: {nota.id})")
+                all_notes.append(nota)
+                if nota.valor is not None:
+                    total_score += nota.valor
+                    num_grades += 1
+
+        if num_grades > 0:
+            average_score = total_score / num_grades
+        else:
+            average_score = 0
+
+        context['all_notes'] = all_notes
+        context['average_score'] = average_score
+        return context
 
 
 class CoursesView(BaseContextMixin, TemplateView):
@@ -379,41 +589,25 @@ class StudentListNotasView(BaseContextMixin, ListView):
             for enrollment in active_enrollments:
                 student = enrollment.student
                 # Buscar calificación por curso, estudiante y curso académico
-                nota = Calificaciones.objects.filter(
+                calificacion = Calificaciones.objects.filter(
                     course=course,
                     student=student,
                     curso_academico=curso_academico_activo
                 ).first()
 
-                if nota:
-                    matricula_id = enrollment.id
+                all_notes = []
+                if calificacion:
+                    # Obtener todas las notas individuales relacionadas con esta calificación
+                    all_notes = list(calificacion.notas.all().order_by('fecha_creacion'))
 
-                    student_data.append({
-                        'nota_id': nota.id,
-                        'name': student.get_full_name(),
-                        'nota_1': nota.nota_1,
-                        'nota_2': nota.nota_2,
-                        'nota_3': nota.nota_3,
-                        'nota_4': nota.nota_4,
-                        'nota_5': nota.nota_5,
-                        'nota_6': nota.nota_6,
-                        'average': nota.average,
-                        'matricula_id': matricula_id,
-                    })
-                else:
-                    # Si no hay calificación para un estudiante matriculado, lo incluimos con notas vacías
-                    student_data.append({
-                        'nota_id': None,
-                        'name': student.get_full_name(),
-                        'nota_1': None,
-                        'nota_2': None,
-                        'nota_3': None,
-                        'nota_4': None,
-                        'nota_5': None,
-                        'nota_6': None,
-                        'average': None,
-                        'matricula_id': enrollment.id,
-                    })
+                student_data.append({
+                    'calificacion_id': calificacion.id if calificacion else None,
+                    'name': student.get_full_name(),
+                    'notas': all_notes, # Lista de notas individuales
+                    'average': calificacion.average if calificacion else None,
+                    'matricula_id': enrollment.id,
+                    'student_id': student.id, # Add student.id here
+                })
             context['student_data'] = student_data
         else:
             context['courses'] = CursoAcademico.objects.all()
@@ -433,41 +627,25 @@ class StudentListNotasView(BaseContextMixin, ListView):
         for enrollment in active_enrollments:
             student = enrollment.student
             # Buscar calificación por curso, estudiante y curso académico
-            nota = Calificaciones.objects.filter(
+            calificacion = Calificaciones.objects.filter(
                 course=course, 
                 student=student,
                 curso_academico=curso_academico_activo
             ).first()
             
-            if nota:
-                matricula_id = enrollment.id
+            all_notes = []
+            if calificacion:
+                # Obtener todas las notas individuales relacionadas con esta calificación
+                notas_list = list(calificacion.notas.all().order_by('fecha_creacion').values_list('valor', flat=True))
 
-                student_data.append({
-                    'nota_id': nota.id,
-                    'name': student.get_full_name(),
-                    'nota_1': nota.nota_1,
-                    'nota_2': nota.nota_2,
-                    'nota_3': nota.nota_3,
-                    'nota_4': nota.nota_4,
-                    'nota_5': nota.nota_5,
-                    'nota_6': nota.nota_6,
-                    'average': nota.average,
-                    'matricula_id': matricula_id,
-                })
-            else:
-                # Si no hay calificación para un estudiante matriculado, lo incluimos con notas vacías
-                student_data.append({
-                    'nota_id': None,
-                    'name': student.get_full_name(),
-                    'nota_1': None,
-                    'nota_2': None,
-                    'nota_3': None,
-                    'nota_4': None,
-                    'nota_5': None,
-                    'nota_6': None,
-                    'average': None,
-                    'matricula_id': enrollment.id,
-                })
+            student_data.append({
+                'calificacion_id': calificacion.id if calificacion else None,
+                'name': student.get_full_name(),
+                'notas': notas_list, # Lista de notas individuales
+                'average': calificacion.average if calificacion else None,
+                'matricula_id': enrollment.id,
+                'student_id': student.id, # Add student.id here
+            })
 
         context['course'] = course
         context['student_data'] = student_data
@@ -475,7 +653,10 @@ class StudentListNotasView(BaseContextMixin, ListView):
         return context
 # Agregar Notas de los estudiantes
 
-class AddNotaView(BaseContextMixin, TemplateView):
+class AddNotaView(LoginRequiredMixin, View):
+    def dispatch(self, request, *args, **kwargs):
+
+        return super().dispatch(request, *args, **kwargs)
 
     def get(self, request, matricula_id):
         matricula = get_object_or_404(Matriculas, id=matricula_id)
@@ -493,16 +674,24 @@ class AddNotaView(BaseContextMixin, TemplateView):
             )
             print("[GET] Existing Calificacion found.")
             form = CalificacionesForm(instance=calificacion)
+            formset = NotaIndividualFormSet(instance=calificacion) # Instancia el formset con la calificación existente
         except Calificaciones.DoesNotExist:
             print("[GET] Calificaciones.DoesNotExist raised. No existing Calificacion found.")
-            form = CalificacionesForm()
+            form = CalificacionesForm(initial={
+                'matricula': matricula,
+                'course': matricula.course,
+                'student': matricula.student,
+                'curso_academico': matricula.curso_academico
+            }) # Pasa los valores iniciales para los campos de Calificaciones
+            formset = NotaIndividualFormSet() # Instancia un formset vacío
         
         context = {
             'form': form,
+            'formset': formset, # Añade el formset al contexto
             'matricula': matricula
         }
         return render(request, 'add_nota.html', context)
-        
+
     def post(self, request, matricula_id):
         matricula = get_object_or_404(Matriculas, id=matricula_id)
         print(f"[POST] Matricula ID: {matricula_id}")
@@ -510,11 +699,9 @@ class AddNotaView(BaseContextMixin, TemplateView):
         print(f"[POST] Matricula Student ID: {matricula.student.id}")
         print(f"[POST] Matricula Curso Academico ID: {matricula.curso_academico.id if matricula.curso_academico else 'None'}")
 
-        # Intenta obtener una calificación existente para esta matrícula
         try:
-            # Buscar calificación por curso, estudiante y curso académico de la matrícula
             calificacion = Calificaciones.objects.get(
-                course=matricula.course, 
+                course=matricula.course,
                 student=matricula.student,
                 curso_academico=matricula.curso_academico
             )
@@ -522,28 +709,34 @@ class AddNotaView(BaseContextMixin, TemplateView):
             form = CalificacionesForm(request.POST, instance=calificacion)
         except Calificaciones.DoesNotExist:
             print("[POST] Calificaciones.DoesNotExist raised. No existing Calificacion found. Creating new one.")
-            # Si no existe, crea una nueva instancia de Calificaciones
-            calificacion = Calificaciones(
-                course=matricula.course,
-                student=matricula.student,
-                matricula=matricula,
-                curso_academico=matricula.curso_academico
-            )
-            form = CalificacionesForm(request.POST, instance=calificacion)
-        
+            form = CalificacionesForm(request.POST)
+
         if form.is_valid():
             calificacion = form.save(commit=False)
-            # Asegurarse de que los campos de relación estén correctamente asignados
             calificacion.matricula = matricula
             calificacion.course = matricula.course
             calificacion.student = matricula.student
             calificacion.curso_academico = matricula.curso_academico
-            print(f"[POST] Saving Calificacion with Course ID: {calificacion.course.id}, Student ID: {calificacion.student.id}, Curso Academico ID: {calificacion.curso_academico.id if calificacion.curso_academico else 'None'}")
-            calificacion.save()
-            messages.success(request, 'Calificación guardada exitosamente.')
-            return redirect('principal:student_list_notas_by_course', course_id=matricula.course.id)
+            calificacion.save() # <-- Guarda la instancia de Calificaciones aquí
+
+            # Ahora que calificacion tiene un PK, podemos inicializar el formset
+            formset = NotaIndividualFormSet(request.POST, instance=calificacion)
+
+            if formset.is_valid():
+                
+                formset.save()
+                messages.success(request, 'Notas guardadas correctamente.')
+                return redirect('principal:student_list_notas_by_course', course_id=matricula.course.id)
+            else:
+                print(f"[POST] Formset is NOT valid. Errors: {formset.errors}")
+                messages.error(request, 'Error al guardar las notas individuales.')
+        else:
+            print(f"[POST] CalificacionesForm errors: {form.errors}")
+            messages.error(request, 'Error al guardar la calificación principal.')
+
         context = {
             'form': form,
+            'formset': formset, # Asegúrate de pasar el formset al contexto incluso si hay errores
             'matricula': matricula
         }
         return render(request, 'add_nota.html', context)
