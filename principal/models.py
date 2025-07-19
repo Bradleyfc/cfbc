@@ -5,7 +5,6 @@ from accounts.models import Registro
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from datetime import date
-from django.utils import timezone
 from decimal import Decimal
 
 # Create your models here.
@@ -21,7 +20,7 @@ class Curso(models.Model):
     name = models.CharField(max_length=90, verbose_name='Nombre')
     description= models.TextField(blank=True, null=True, verbose_name='Descripcion')
     teacher = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'groups__name': 'Profesores'}, verbose_name='Profesor')
-    class_quantity = models.PositiveIntegerField(default=0, verbose_name='Catidad de Clases')
+    class_quantity = models.PositiveIntegerField(default=0, verbose_name='Cantidad de Clases')
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='I', verbose_name='Estado')
     curso_academico = models.ForeignKey('CursoAcademico', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Curso Académico')
     enrollment_deadline = models.DateField(verbose_name='Fecha límite de inscripción', null=True, blank=True)
@@ -140,18 +139,13 @@ class Asistencia(models.Model):
     presente = models.BooleanField(default=False, blank=True, null=True, verbose_name='Asistió')
     date = models.DateField(null=False, blank=False, verbose_name='Fecha')
     
+    def __str__(self):
+        return f"Asistencia de {self.student.first_name} {self.student.last_name} en {self.course.name} el {self.date}"
+
     class Meta:
+        verbose_name = 'Asistencia'
+        verbose_name_plural = 'Asistencias'
         unique_together = ('student', 'date', 'course')
-
-    def __str__(self):
-        return f"Asistencia de {self.student.first_name} {self.student.last_name} en {self.course.nombre} el {self.date}"
-
-    def __str__(self):
-        return f'Asistencia {self.id}'
-
-    class Meta:
-        verbose_name= 'Asistencia'
-        verbose_name_plural= 'Asistencias'
 
 
 # CALIFICACIONES
@@ -184,15 +178,16 @@ class Calificaciones(models.Model):
         super().save(*args, **kwargs)
         
         # Now that the instance has a PK, calculate the average
-        # and update the average field if it has changed
-        old_average = self.average
         calculated_average = self.calcular_promedio()
         if calculated_average is not None:
-            self.average = Decimal(str(calculated_average))
+            new_average = Decimal(str(calculated_average))
         else:
-            self.average = None
+            new_average = None
         
-        super().save(update_fields=['average'])
+        # Only update if the average has changed
+        if self.average != new_average:
+            self.average = new_average
+            super().save(update_fields=['average'])
 
     class Meta:
         verbose_name= 'Calificacion'

@@ -3,7 +3,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.views import View
 from django.core.mail import send_mail
 from django.conf import settings
-from django.views.generic import ListView
+from django.views.generic import ListView, DetailView, TemplateView, CreateView, UpdateView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
@@ -13,9 +13,8 @@ from django.contrib.auth import logout
 from django.contrib import messages
 from .forms import CustomUserCreationForm, CourseForm, CalificacionesForm, NotaIndividualFormSet # Importa NotaIndividualFormSet
 from django.contrib.auth.models import Group, User
-from django.db.models import Q
-from datetime import date, datetime # Añade 'datetime' aquí
-from django.db.models import Q, Max # Asegúrate de que 'Max' esté importado
+from django.db.models import Q, Max
+from datetime import date, datetime
 from django.http import HttpResponse
 from django.template.loader import get_template
 from xhtml2pdf import pisa
@@ -23,6 +22,7 @@ from io import BytesIO
 import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from accounts.models import Registro
+from .models import CursoAcademico, Curso, Matriculas, Calificaciones, Asistencia
 
 # Create your views here.
 
@@ -122,9 +122,6 @@ def export_matriculas_excel(request):
     response = HttpResponse(output.getvalue(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename=matriculas.xlsx'
     return response
-
-from django.views.generic import DetailView
-from .models import CursoAcademico, Curso, Matriculas, Calificaciones, Asistencia
 
 # Función auxiliar para generar PDF
 def render_to_pdf(template_src, context_dict={}):
@@ -455,10 +452,6 @@ class CursoAcademicoDetailView(DetailView):
                 return response
         # Si no se solicita PDF ni Excel, renderizar normalmente
         return super().render_to_response(context, **response_kwargs)
-from django.views.generic import TemplateView, CreateView, ListView, View
-from .models import Calificaciones, Curso, Matriculas, CursoAcademico
-from django.views.generic.edit import UpdateView
-from django.contrib.auth.mixins import LoginRequiredMixin # Importar LoginRequiredMixin
 
 
 class BaseContextMixin:
@@ -554,8 +547,6 @@ def logout_view(request):
 
 
 import random
-from django.core.mail import send_mail
-from django.conf import settings
 
 def registro(request):
     if request.method == 'POST':
@@ -689,7 +680,7 @@ class ProfileView(BaseContextMixin, TemplateView):
             else:
                 all_courses = Curso.objects.none()
             context['all_courses'] = all_courses
-
+        
         return context
 
 # Vista de los Cursos

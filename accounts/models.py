@@ -1,6 +1,3 @@
-from random import choices
-from tabnanny import verbose
-from typing import Required
 from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
