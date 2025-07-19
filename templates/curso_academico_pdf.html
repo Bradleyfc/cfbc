@@ -1,0 +1,187 @@
+{% load static %}
+{% load custom_filters %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ curso_academico.nombre }} - PDF</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.5;
+            margin: 20px;
+        }
+        h1, h2, h3 {
+            color: #003366;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Detalles del Curso Académico: {{ curso_academico.nombre }}</h1>
+        <p><strong>Activo:</strong> {{ curso_academico.activo|yesno:"Sí,No" }} | 
+           <strong>Archivado:</strong> {{ curso_academico.archivado|yesno:"Sí,No" }} | 
+           <strong>Fecha de Creación:</strong> {{ curso_academico.fecha_creacion }}</p>
+    </div>
+
+    <div class="section">
+        <h2>Cursos Asociados</h2>
+        {% if cursos %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre del Curso</th>
+                    <th>Profesor</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for curso in cursos %}
+                <tr>
+                    <td>{{ curso.name }}</td>
+                    <td>{{ curso.teacher.get_full_name|default:curso.teacher.username }}</td>
+                    <td>{{ curso.get_status_display }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No hay cursos asociados a este curso académico.</p>
+        {% endif %}
+    </div>
+
+    <div class="section">
+        <h2>Matrículas</h2>
+        {% if matriculas %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Estudiante</th>
+                    <th>Curso</th>
+                    <th>Estado Matrícula</th>
+                    <th>Fecha Matrícula</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for matricula in matriculas %}
+                <tr>
+                    <td>{{ matricula.student.get_full_name|default:matricula.student.username }}</td>
+                    <td>{{ matricula.course.name }}</td>
+                    <td>{{ matricula.get_estado_display }}</td>
+                    <td>{{ matricula.fecha_matricula }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No hay matrículas para este curso académico.</p>
+        {% endif %}
+    </div>
+
+    <div class="section">
+        <h2>Calificaciones</h2>
+        {% if calificaciones %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Estudiante</th>
+                    <th>Curso</th>
+                    {% comment %} Determinar el número máximo de notas para crear encabezados dinámicos {% endcomment %}
+                    {% with max_notas=calificaciones|map_max_notas %}
+                        {% for i in max_notas|get_range:1 %}
+                            <th>Nota {{ forloop.counter }}</th>
+                        {% endfor %}
+                    {% endwith %}
+                    <th>Promedio</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for calificacion in calificaciones %}
+                <tr>
+                    <td>{{ calificacion.student.get_full_name|default:calificacion.student.username }}</td>
+                    <td>{{ calificacion.course.name }}</td>
+                    {% comment %} Mostrar notas individuales {% endcomment %}
+                    {% with notas=calificacion.notas.all|dictsort:"fecha_creacion" %}
+                        {% for nota in notas %}
+                            <td>{{ nota.valor }}</td>
+                        {% endfor %}
+                        {% comment %} Rellenar con N/A las notas que no existen {% endcomment %}
+                        {% with max_notas=calificaciones|map_max_notas %}
+                            {% with notas_length=notas|length %}
+                                {% with notas_faltantes=max_notas|subtract:notas_length %}
+                                    {% for i in notas_faltantes|get_range:1 %}
+                                        <td>N/A</td>
+                                    {% endfor %}
+                                {% endwith %}
+                            {% endwith %}
+                        {% endwith %}
+                    {% endwith %}
+                    <td>{{ calificacion.average|default:"N/A" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No hay calificaciones para este curso académico.</p>
+        {% endif %}
+    </div>
+
+    <div class="section">
+        <h2>Asistencias</h2>
+        {% if asistencias %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Estudiante</th>
+                    <th>Curso</th>
+                    <th>Fecha</th>
+                    <th>Presente</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for asistencia in asistencias %}
+                <tr>
+                    <td>{{ asistencia.student.get_full_name|default:asistencia.student.username }}</td>
+                    <td>{{ asistencia.course.name }}</td>
+                    <td>{{ asistencia.date }}</td>
+                    <td>{{ asistencia.presente|yesno:"Sí,No" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No hay registros de asistencia para este curso académico.</p>
+        {% endif %}
+    </div>
+
+    <div class="footer">
+        <p>Documento generado el {{ now|date:"d/m/Y H:i" }}</p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,44 @@
+from django.urls import path
+from . import views
+
+app_name = 'principal'
+
+urlpatterns = [
+    path('usuarios-registrados/', views.UsuariosRegistradosView.as_view(), name='usuarios_registrados'),
+    path('admin/principal/cursoacademico/<int:pk>/detail/', views.CursoAcademicoDetailView.as_view(), name='principal_cursoacademico_detail'),
+    path('', views.HomeView.as_view(), name='home'),
+    path('listado_cursos/', views.ListadoCursosView.as_view(), name='listado_cursos'),
+    path('login_redirect/', views.LoginRedirectView.as_view(), name='login_redirect'),
+    path('profile/', views.ProfileView.as_view(), name='profile'),
+    path('courses/', views.CoursesView.as_view(), name='courses'),
+    path('create_course/', views.CourseCreateView.as_view(), name='create_course'),
+    path('update_course/<int:pk>/', views.CourseUpdateView.as_view(), name='update_course'),
+    path('inscribirse_curso/<int:course_id>/', views.inscribirse_curso, name='inscribirse_curso'),
+    path('eliminar_curso/<int:course_id>/', views.eliminar_curso, name='eliminar_curso'),
+    path('student_list_notas/', views.StudentListNotasView.as_view(), name='student_list_notas'),
+    path('add_nota/<int:matricula_id>/', views.AddNotaView.as_view(), name='add_nota'),
+    path('historico_alumno/<int:student_id>/', views.historico_alumno, name='historico_alumno'),
+    path('logout/', views.logout_view, name='logout_view'),
+    path('registro/', views.registro, name='registro'),
+    path('cursos/', views.CoursesView.as_view(), name='cursos'),
+    path('cursos/create/', views.CourseCreateView.as_view(), name='crear_cursos'),
+    path('cursos/inscribirse/<int:curso_id>/', views.inscribirse_curso, name='inscribirse_curso'),
+    path('cursos/editar/<int:pk>/', views.CourseUpdateView.as_view(), name='editar_curso'),
+    path('cursos/eliminar/<int:curso_id>/', views.eliminar_curso, name='eliminar_curso'),
+    path('cursos/<int:course_id>/', views.StudentListNotasView.as_view(), name='student_list_notas_by_course'),
+    path('matricula/<int:matricula_id>/add_nota/', views.AddNotaView.as_view(), name='add_nota'),
+    path('cursos/<int:course_id>/asistencias/', views.AsistenciaView.as_view(), name='asistencias'),
+    path('student/<int:student_id>/course/<int:course_id>/attendances/', views.StudentCourseAttendanceView.as_view(), name='student_course_attendances'),
+    path('student/<int:student_id>/course/<int:course_id>/notes/', views.StudentCourseNotesView.as_view(), name='student_course_notes'),
+    path('matriculas/', views.MatriculasListView.as_view(), name='matriculas'),
+    path('calificaciones/', views.CalificacionesListView.as_view(), name='calificaciones'),
+    path('asistencias_list/', views.AsistenciasListView.as_view(), name='asistencias_list'),
+    path('cursos/<int:course_id>/addasistencias/', views.AddAsistenciaView.as_view(),name='add_asistencias' ),
+    path('asistencias/eliminar/<int:asistencia_id>/', views.eliminar_asistencia, name='eliminar_asistencia'),
+    path('asistencias/<int:course_id>/undo/', views.undo_last_asistencia, name='undo_last_asistencia'),
+    path('matriculas/export-pdf/', views.export_matriculas_pdf, name='export_matriculas_pdf'),
+    path('matriculas/export-excel/', views.export_matriculas_excel, name='export_matriculas_excel'),
+    
+    path('export-usuarios-excel/', views.export_usuarios_excel, name='export_usuarios_excel'),
+    path('verify_email/', views.verify_email, name='verify_email'),
+]

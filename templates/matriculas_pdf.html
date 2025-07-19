@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Listado de Matrículas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #333;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .estado {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .estado-A { background-color: #28a745; color: white; }
+        .estado-P { background-color: #ffc107; color: black; }
+        .estado-R { background-color: #dc3545; color: white; }
+        .estado-L { background-color: #17a2b8; color: white; }
+        .estado-B { background-color: #6c757d; color: white; }
+    </style>
+</head>
+<body>
+    <h2>Listado de Matrículas</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Estudiante</th>
+                <th>Curso Académico</th>
+                <th>Curso</th>
+                <th>Fecha de Matrícula</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for matricula in matriculas %}
+            <tr>
+                <td>{{ matricula.student.username }}</td>
+                <td>{{ matricula.curso_academico.nombre }}</td>
+                <td>{{ matricula.course.name }}</td>
+                <td>{{ matricula.fecha_matricula|date:"d/m/Y" }}</td>
+                <td>
+                    {% if matricula.estado == 'A' %}
+                        <span class="estado estado-A">Aprobado</span>
+                    {% elif matricula.estado == 'P' %}
+                        <span class="estado estado-P">Pendiente</span>
+                    {% elif matricula.estado == 'R' %}
+                        <span class="estado estado-R">Reprobado</span>
+                    {% elif matricula.estado == 'L' %}
+                        <span class="estado estado-L">Licencia</span>
+                    {% elif matricula.estado == 'B' %}
+                        <span class="estado estado-B">Baja</span>
+                    {% else %}
+                        <span class="estado estado-B">{{ matricula.estado }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

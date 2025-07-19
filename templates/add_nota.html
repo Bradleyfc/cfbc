@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">Agregar Calificación</h2>
+        </div>
+        <div class="card-body">
+            <p><strong>Estudiante:</strong> {{ matricula.student.first_name }} {{ matricula.student.last_name }}</p>
+            <p><strong>Curso:</strong> {{ matricula.course.name}}</p>
+            <form method="post" id="calificaciones-form">
+                {% csrf_token %}
+                {{ form.media }}
+                {{ form.as_p }}
+
+                <h3>Notas Individuales</h3>
+                <div id="formset-container">
+                    {{ formset.management_form }}
+                    {% for form_nota in formset %}
+                        <div class="nota-formset-row">
+                            <p><label for="{{ form_nota.valor.id_for_label }}">Nota:</label> {{ form_nota.valor }} {{ form_nota.id }} <span class="hidden-checkbox">{{ form_nota.DELETE }} <label for="{{ form_nota.DELETE.id_for_label }}">Eliminar</label></span> <button type="button" class="btn btn-danger btn-sm delete-nota-button" data-form-id="{{ form_nota.prefix }}">Eliminar</button></p>
+
+                            {% if form_nota.instance.pk %}
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+                <button type="button" id="add-nota-button" class="btn btn-info">Agregar Nota</button>
+                <button type="submit" class="btn btn-success">Guardar Calificación</button>
+                <a href="{% url 'principal:student_list_notas_by_course' course_id=matricula.course.id %}" class="btn btn-secondary">Cancelar</a>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hidden-checkbox {
+        display: none;
+    }
+    .hidden-checkbox + label {
+        display: none;
+    }
+    #add-nota-button {
+        display: none !important;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const formsetContainer = document.getElementById('formset-container');
+
+        const totalForms = document.querySelector('#id_form-TOTAL_FORMS');
+        const addNotaButton = document.getElementById('add-nota-button');
+        addNotaButton.style.display = 'none'; // Hide the button
+
+        // Hide all elements with the class 'hidden-checkbox'
+        document.querySelectorAll('.hidden-checkbox').forEach(function(element) {
+            element.style.display = 'none';
+        });
+
+        addNotaButton.addEventListener('click', function() {
+            const currentForms = formsetContainer.querySelectorAll('.nota-formset-row').length;
+            const newFormIndex = totalForms.value;
+
+            const newFormHtml = `
+                <div class="nota-formset-row">
+                    <p><label for="id_form-${newFormIndex}-valor">Nota:</label> <input type="number" name="form-${newFormIndex}-valor" step="0.01" id="id_form-${newFormIndex}-valor"></p>
+                    <input type="hidden" name="form-${newFormIndex}-id" id="id_form-${newFormIndex}-id" value="">
+                    <span class="hidden-checkbox"><input type="checkbox" name="form-${newFormIndex}-DELETE" id="id_form-${newFormIndex}-DELETE"></span>
+                    <button type="button" class="btn btn-danger btn-sm delete-nota-button" data-form-id="form-${newFormIndex}">Eliminar</button>
+                </div>
+            `;
+
+            // Update TOTAL_FORMS
+            totalForms.value = parseInt(totalForms.value) + 1;
+
+            formsetContainer.insertAdjacentHTML('beforeend', newFormHtml);
+        });
+
+        // Handle delete button clicks
+        formsetContainer.addEventListener('click', function(event) {
+            if (event.target.classList.contains('delete-nota-button')) {
+                const formId = event.target.dataset.formId;
+                const deleteCheckbox = document.getElementById(`id_${formId}-DELETE`);
+                const formRow = event.target.closest('.nota-formset-row');
+
+                if (deleteCheckbox) {
+                    deleteCheckbox.checked = true; // Check the actual DELETE checkbox
+                    formRow.style.display = 'none'; // Hide the row
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

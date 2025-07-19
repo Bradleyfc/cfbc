@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Calificaciones</h2>
+
+    <form method="GET" class="mb-4">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <input type="text" name="search_query" class="form-control" placeholder="Buscar por nombre de estudiante" value="{{ request.GET.search_query }}">
+            </div>
+
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Buscar/Filtrar</button>
+            </div>
+        </div>
+    </form>
+
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th scope="col">Estudiante</th>
+                <th scope="col">Curso</th>
+                <!-- <th scope="col">Profesor</th> -->
+                {% comment %}
+                Las columnas de Evaluación fijas se eliminan y se generan dinámicamente.
+                {% endcomment %}
+                {% if student_data %}
+                    {% for _ in student_data.0.notas %}
+                        <th scope="col">Nota</th>
+                    {% endfor %}
+                {% endif %}
+                <th scope="col">Promedio</th>
+                <th scope="col">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for data in student_data %}
+            <tr>
+                <td>{{ data.name }}</td>
+                <td>{{ course.name }}</td> {# Asumiendo que 'course' está en el contexto para el nombre del curso #}
+                {% for nota in data.notas %}
+                    <td>{{ nota|default:"N/A" }}</td>
+                {% endfor %}
+                <td><strong>{{ data.average|default:"N/A" }}</strong></td>
+                <td>
+                    <a href="{% url 'principal:add_nota' matricula_id=data.matricula_id %}" class="btn btn-sm btn-primary">Agregar/Editar Nota</a>
+                    <!-- <a href="{% url 'principal:historico_alumno' student_id=data.student_id %}" class="btn btn-sm btn-info">Histórico</a> -->
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5">No se encontraron matrículas o notas para este curso.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if is_paginated %}
+    <nav aria-label="Page navigation example">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search_query %}&search_query={{ request.GET.search_query }}{% endif %}{% if request.GET.course %}&course={{ request.GET.course }}{% endif %}{% if request.GET.teacher %}&teacher={{ request.GET.teacher }}{% endif %}">Anterior</a></li>
+            {% endif %}
+            {% for i in page_obj.paginator.page_range %}
+                <li class="page-item {% if page_obj.number == i %}active{% endif %}"><a class="page-link" href="?page={{ i }}{% if request.GET.search_query %}&search_query={{ request.GET.search_query }}{% endif %}{% if request.GET.course %}&course={{ request.GET.course }}{% endif %}{% if request.GET.teacher %}&teacher={{ request.GET.teacher }}{% endif %}">{{ i }}</a></li>
+            {% endfor %}
+            {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search_query %}&search_query={{ request.GET.search_query }}{% endif %}{% if request.GET.course %}&course={{ request.GET.course }}{% endif %}{% if request.GET.teacher %}&teacher={{ request.GET.teacher }}{% endif %}">Siguiente</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

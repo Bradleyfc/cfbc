@@ -1,0 +1,50 @@
+<h5 class="mb-3">Cursos Asignados</h5> {% if assigned_courses %}
+  
+  
+  <ul class="list-group">
+    {% for course in assigned_courses %}
+     {% with enrollment_count=course.matriculas_set.count %}
+        <li class="list-group-item mb-2">
+         {{course.name}}
+         
+         <div class="float-end ">
+         {% if course.status == 'F' %}
+         <span class="badge bg-danger px-3 py-1.5 text-center" style="min-width: 120px;">{{course.get_status_display}}</span>
+         {% elif course.status == 'P' %}
+         <span class="badge bg-warning text-dark px-3 py-1.5  text-center" style="min-width: 120px;">{{course.get_status_display}}</span>
+         {% elif course.status == 'I' %}
+         <span class="badge bg-success px-3 py-1.5 text-center" style="min-width: 120px;">{{course.get_status_display}}</span>
+         {% elif course.status == 'IT' %}
+         <span class="badge bg-info px-3 py-1.5 text-center" style="min-width: 120px;">{{course.get_status_display}}</span>
+         {% else %}
+         ({{ course.get_status_display }})
+         {% endif %}
+        </div>
+
+
+         {% if course.status == 'P' or course.status == 'F' %}
+         <a href="{% url 'principal:asistencias' course_id=course.id %}" class="btn btn-sm btn-warning float-end me-3">
+          Ver Asistencias
+         </a>
+         
+         
+         
+         <a href="{% url 'principal:student_list_notas_by_course' course_id=course.id %}" class="btn btn-sm btn-warning float-end me-3">
+          Ver Notas
+         <span class="badge rounded-pill bg-light text-danger">{{enrollment_count}}</span>
+         </a>
+         {% endif %}
+        
+        </li>
+        {% endwith %} 
+    {% endfor %}
+  </ul>
+
+  {% else %}
+
+  <div class="alert alert-primary" role="'alert">
+    Ud. no tiene Cursos Asignados hastta el momento
+  </div>
+
+  {% endif %}
+</h5>

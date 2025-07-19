@@ -1,0 +1,28 @@
+# Entornos virtuales
+venv/
+env/
+.venv/
+
+
+# Base de datos
+*.sqlite3
+*.db
+
+# Archivos de Python
+__pycache__/
+*.pyc
+
+# Variables de entorno/secretos
+.env
+secrets.py
+
+# Archivos de IDE
+.vscode/
+.idea/
+
+# Archivos estáticos y medios (generados automáticamente)
+staticfiles/
+media/
+
+# Logs
+*.log

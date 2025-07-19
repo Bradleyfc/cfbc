@@ -1,0 +1,176 @@
+{% extends 'base.html' %} {% load static %} {% load custom_filters %} {% block content %}
+<div class="container mt-4">
+    <h2>Detalles del Curso Académico: {{ curso_academico.nombre }}</h2>
+    <p><strong>Activo:</strong> {{ curso_academico.activo|yesno:"Sí,No" }}</p>
+    <p><strong>Archivado:</strong> {{ curso_academico.archivado|yesno:"Sí,No" }}</p>
+    <p><strong>Fecha de Creación:</strong> {{ curso_academico.fecha_creacion }}</p>
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Filtros</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-6">
+                    <label for="curso" class="form-label">Curso:</label>
+                    <select name="curso" id="curso" class="form-select">
+                        <option value="">Todos</option>
+                        {% for c in cursos_disponibles %}
+                            <option value="{{ c.id }}" {% if request.GET.curso == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label for="estudiante" class="form-label">Estudiante:</label>
+                    <select name="estudiante" id="estudiante" class="form-select">
+                        <option value="">Todos</option>
+                        {% for e in estudiantes_disponibles %}
+                            <option value="{{ e.id }}" {% if request.GET.estudiante == e.id|stringformat:"s" %}selected{% endif %}>{{ e.first_name }} {{ e.last_name }} ({{ e.username }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 text-end">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Filtrar</button>
+                    <a href="{{ request.path }}" class="btn btn-secondary"><i class="fas fa-sync-alt"></i> Limpiar Filtros</a>
+                    <a href="{{ request.path }}?{% if request.GET.curso %}curso={{ request.GET.curso }}&{% endif %}{% if request.GET.estudiante %}estudiante={{ request.GET.estudiante }}&{% endif %}pdf=1" class="btn btn-danger"><i class="fas fa-file-pdf"></i> Exportar a PDF</a>
+                    <a href="{{ request.path }}?{% if request.GET.curso %}curso={{ request.GET.curso }}&{% endif %}{% if request.GET.estudiante %}estudiante={{ request.GET.estudiante }}&{% endif %}excel=1" class="btn btn-success"><i class="fas fa-file-excel"></i> Exportar a Excel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <h3>Cursos Asociados</h3>
+    {% if cursos %}
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Nombre del Curso</th>
+                <th>Profesor</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for curso in cursos %}
+            <tr>
+                <td>{{ curso.name }}</td>
+                <td>{{ curso.teacher.get_full_name|default:curso.teacher.username }}</td>
+                <td>{{ curso.get_status_display }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No hay cursos asociados a este curso académico.</p>
+    {% endif %}
+
+    <h3>Matrículas</h3>
+    {% if matriculas %}
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Estudiante</th>
+                <th>Curso</th>
+                <th>Estado Matrícula</th>
+                <th>Fecha Matrícula</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for matricula in matriculas %}
+            <tr>
+                <td>{{ matricula.student.get_full_name|default:matricula.student.username }}</td>
+                <td>{{ matricula.course.name }}</td>
+                <td>{{ matricula.get_estado_display }}</td>
+                <td>{{ matricula.fecha_matricula }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No hay matrículas para este curso académico.</p>
+    {% endif %}
+
+    <h3>Calificaciones</h3>
+    {% if calificaciones %}
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Estudiante</th>
+                <th>Curso</th>
+                {% comment %} Determinar el número máximo de notas para crear encabezados dinámicos {% endcomment %}
+                {% with max_notas=0 %}
+                    {% for calificacion in calificaciones %}
+                        {% with num_notas=calificacion.notas.count %}
+                            {% if num_notas > max_notas %}
+                                {% with max_notas=num_notas %}
+                                    {% for i in max_notas|get_range:1 %}
+                                        <th>Nota {{ forloop.counter }}</th>
+                                    {% endfor %}
+                                {% endwith %}
+                            {% endif %}
+                        {% endwith %}
+                    {% endfor %}
+                {% endwith %}
+                <th>Promedio</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for calificacion in calificaciones %}
+            <tr>
+                <td>{{ calificacion.student.get_full_name|default:calificacion.student.username }}</td>
+                <td>{{ calificacion.course.name }}</td>
+                {% comment %} Mostrar notas individuales {% endcomment %}
+                {% with notas=calificacion.notas.all|dictsort:"fecha_creacion" %}
+                    {% for nota in notas %}
+                        <td>{{ nota.valor }}</td>
+                    {% endfor %}
+                    {% comment %} Rellenar con N/A las notas que no existen {% endcomment %}
+                    {% with max_notas=calificaciones|map_max_notas %}
+                        {% with notas_length=notas|length %}
+                                    {% with notas_faltantes=max_notas|subtract:notas_length %}
+                                        {% for i in notas_faltantes|get_range:1 %}
+                                            <td>N/A</td>
+                                        {% endfor %}
+                                    {% endwith %}
+                                {% endwith %}
+                    {% endwith %}
+                {% endwith %}
+                <td>{{ calificacion.average|default:"N/A" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No hay calificaciones para este curso académico.</p>
+    {% endif %}
+
+    <h3>Asistencias</h3>
+    {% if asistencias %}
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Estudiante</th>
+                <th>Curso</th>
+                <th>Fecha</th>
+                <th>Presente</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for asistencia in asistencias %}
+            <tr>
+                <td>{{ asistencia.student.get_full_name|default:asistencia.student.username }}</td>
+                <td>{{ asistencia.course.name }}</td>
+                <td>{{ asistencia.date }}</td>
+                <td>{{ asistencia.presente|yesno:"Sí,No" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No hay registros de asistencia para este curso académico.</p>
+    {% endif %}
+
+    <div class="mt-3">
+        <a href="{% url 'admin:principal_cursoacademico_changelist' %}" class="btn btn-secondary">Volver a la lista de Cursos Académicos</a>
+    </div>
+</div>
+{% endblock %}

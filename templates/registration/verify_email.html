@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="text-center">Verificación de Email</h2>
+                </div>
+                <div class="card-body">
+                    <p class="text-center">Se ha enviado un código de verificación a tu correo electrónico. Por favor, ingrésalo a continuación.</p>
+                    {% if error %}
+                        <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+                            <strong><i class="bi bi-exclamation-triangle-fill"></i> Error:</strong> {{ error }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endif %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="code" class="form-label">Código:</label>
+                            <input type="text" class="form-control w-50 mx-auto" style="font-size: 1.5em; text-align: center;" id="code" name="code" required maxlength="4" placeholder="— — — —">
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Aceptar</button>
+                        </div>
+                    </form>
+
+                </div>
+                  </div>
+              </div>
+    </div>
+</div>
+{% endblock %}

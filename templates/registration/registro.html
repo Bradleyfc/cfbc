@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+{% load crispy_forms_tags %}
+{% load static %}
+<div class="container" >
+<h3>REGISTRO DE USUARIO</h3>
+</div>
+<hr>
+<br>
+<form action="" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+
+    <div class="card mx-auto" style="width: 30rem;">
+        <img src="{% static 'icono.jpg' %}" class="card-img-top" alt="logo del centro" style="max-width: 20%; height: auto; margin: 0 auto; display: block; padding-top: 5%;">
+        <div class="card-body">
+          <h5 class="card-title">Rellene todos los campos</h5>
+          {{ form | crispy }}
+          <div>
+
+          <a href="{% url 'principal:home' %}" class="card-link">Inicio</a> 
+          <p>Ya tienes una cuenta? <a href="{% url 'login' %}" class="card-link">Inicia Sesion</a></p>   
+        </div>
+
+          <button class="btn btn-sm btn-primary float-end" type="submit">Registrarse</button>
+        </div>
+      </div>
+
+    
+    <br>
+    
+
+
+
+
+</form>
+
+{% endblock %}

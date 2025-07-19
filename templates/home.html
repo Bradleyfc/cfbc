@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+  .image-container {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .image-container img {
+    display: block;
+    width: 100%;
+    height: auto;
+    transition: transform 0.3s ease;
+  }
+
+  .image-container .overlay {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 10px;
+  }
+
+  .image-container:hover .overlay {
+    opacity: 1;
+  }
+
+  .image-container:hover {
+    transform: scale(1.1); /* Increased scale for more noticeable growth */
+    z-index: 15; /* Bring to front */
+  }
+
+  .overlay h5,
+  .overlay p {
+    margin: 0;
+  }
+
+  .carousel-item img {
+    height: 150px; /* Adjust as needed */
+    object-fit: cover;
+  }
+</style>
+
+<h1 class="display-4 fw-bold text-center my-5" style="text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);">CENTRO FRAY BARTOLOME DE LAS CASAS</h1>
+
+{% if request.user.is_authenticated %}
+<hr>
+<div class="container" >
+<h2 >Bienvenido {{ user.username | upper }}</h2>
+</div>
+        {% endif %}
+<br>
+<br>
+<br>
+  <h3 class="text-center text-secondary">Nuestros Cursos</h3>
+
+<br>
+<br>  
+        
+        <div id="carouselExampleAutoplaying" class="carousel slide" data-bs-ride="carousel" style="max-width: 800px; margin: auto;">
+                <div class="carousel-inner">
+                  {% for group in grouped_courses %}
+                  <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                    <div class="row">
+                      {% for course in group %}
+                      <div class="col-md-3">
+                        <div class="image-container">
+                          <img src="{% if course.image %}{{ course.image.url }}{% else %}/static/img/default_course.jpg{% endif %}" class="d-block w-100 " alt="{{ course.name }}">
+                          <div class="overlay">
+                            <h5>{{ course.name }}</h5>
+                            <p>{{ course.description }}</p>
+                          </div>
+                        </div>
+                      </div>
+                      {% endfor %}
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleAutoplaying" data-bs-slide="prev">
+                  <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                  <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleAutoplaying" data-bs-slide="next">
+                  <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                  <span class="visually-hidden">Next</span>
+                </button>
+              </div>
+        
+                
+
+
+
+
+
+{% endblock %}
