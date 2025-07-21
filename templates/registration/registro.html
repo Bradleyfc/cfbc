@@ -1,36 +1,70 @@
 {% extends 'base.html' %}
 
+{% block messages %}
+<!-- Intencionalmente vacío para no mostrar mensajes en esta página -->
+{% endblock %}
+
 {% block content %}
 
 {% load crispy_forms_tags %}
 {% load static %}
-<div class="container" >
-<h3>REGISTRO DE USUARIO</h3>
+<style>
+  /* Ocultar todos los tipos de mensajes de error que aparecen en la parte superior */
+  .messages,
+  .alert,
+  .alert-danger,
+  .alert-error,
+  .alert-warning,
+  .alert-info,
+  .alert-block,
+  .errorlist,
+  .nonfield,
+  ul.errorlist,
+  div.alert,
+  .has-error .help-block {
+    display: none !important;
+  }
+
+  /* Mantener visibles solo los errores específicos de campos */
+  .form-group .invalid-feedback,
+  .form-group .text-danger {
+    display: block !important;
+  }
+</style>
+<div class="container">
+  <h3>REGISTRO DE USUARIO</h3>
 </div>
 <hr>
 <br>
 <form action="" method="post" enctype="multipart/form-data">
-    {% csrf_token %}
+  {% csrf_token %}
 
 
-    <div class="card mx-auto" style="width: 30rem;">
-        <img src="{% static 'icono.jpg' %}" class="card-img-top" alt="logo del centro" style="max-width: 20%; height: auto; margin: 0 auto; display: block; padding-top: 5%;">
-        <div class="card-body">
-          <h5 class="card-title">Rellene todos los campos</h5>
-          {{ form | crispy }}
-          <div>
+  <div class="card mx-auto" style="width: 30rem;">
+    <img src="{% static 'icono.jpg' %}" class="card-img-top" alt="logo del centro"
+      style="max-width: 20%; height: auto; margin: 0 auto; display: block; padding-top: 5%;">
+    <div class="card-body">
+      <h5 class="card-title">Rellene todos los campos</h5>
 
-          <a href="{% url 'principal:home' %}" class="card-link">Inicio</a> 
-          <p>Ya tienes una cuenta? <a href="{% url 'login' %}" class="card-link">Inicia Sesion</a></p>   
-        </div>
+      <!-- Eliminar errores no asociados a campos específicos -->
+      {% if form.non_field_errors %}
+      <!-- Intencionalmente vacío para no mostrar errores generales -->
+      {% endif %}
 
-          <button class="btn btn-sm btn-primary float-end" type="submit">Registrarse</button>
-        </div>
+      {{ form | crispy }}
+      <div>
+
+        <a href="{% url 'principal:home' %}" class="card-link">Inicio</a>
+        <p>Ya tienes una cuenta? <a href="{% url 'login' %}" class="card-link">Inicia Sesion</a></p>
       </div>
 
-    
-    <br>
-    
+      <button class="btn btn-sm btn-primary float-end" type="submit">Registrarse</button>
+    </div>
+  </div>
+
+
+  <br>
+
 
 
 

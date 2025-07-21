@@ -6,6 +6,7 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from datetime import date
 from decimal import Decimal
+import json
 
 # Create your models here.
 # CURSOS
@@ -213,9 +214,139 @@ class NotaIndividual(models.Model):
 def update_calificaciones_average(sender, instance, **kwargs):
     calificacion = instance.calificacion
     calificacion.save() # This will trigger the calcular_promedio and update the average
-      
 
+# FORMULARIOS DE APLICACIÓN A CURSOS
 
+class FormularioAplicacion(models.Model):
+    """
+    Modelo para almacenar los formularios de aplicación creados por el grupo secretaría.
+    Cada curso puede tener un formulario de aplicación personalizado.
+    """
+    curso = models.OneToOneField(Curso, on_delete=models.CASCADE, related_name='formulario_aplicacion', verbose_name='Curso')
+    titulo = models.CharField(max_length=200, verbose_name='Título del formulario')
+    descripcion = models.TextField(blank=True, null=True, verbose_name='Descripción')
+    fecha_creacion = models.DateTimeField(auto_now_add=True, verbose_name='Fecha de creación')
+    fecha_modificacion = models.DateTimeField(auto_now=True, verbose_name='Última modificación')
+    activo = models.BooleanField(default=True, verbose_name='Activo')
     
+    def __str__(self):
+        return f"Formulario para {self.curso.name}"
     
+    class Meta:
+        verbose_name = 'Formulario de Aplicación'
+        verbose_name_plural = 'Formularios de Aplicación'
+        ordering = ['-fecha_modificacion']
 
+class PreguntaFormulario(models.Model):
+    """
+    Modelo para almacenar las preguntas de los formularios de aplicación.
+    """
+    TIPO_CHOICES = [
+        ('seleccion_multiple', 'Selección Múltiple'),
+        ('escritura_libre', 'Escritura Libre'),
+    ]
+    
+    formulario = models.ForeignKey(FormularioAplicacion, on_delete=models.CASCADE, related_name='preguntas', verbose_name='Formulario')
+    texto = models.CharField(max_length=500, verbose_name='Texto de la pregunta')
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default='seleccion_multiple', verbose_name='Tipo de pregunta')
+    requerida = models.BooleanField(default=True, verbose_name='Requerida')
+    orden = models.PositiveIntegerField(default=0, verbose_name='Orden')
+    
+    def __str__(self):
+        return f"{self.texto} ({self.get_tipo_display()})"
+    
+    class Meta:
+        verbose_name = 'Pregunta de Formulario'
+        verbose_name_plural = 'Preguntas de Formulario'
+        ordering = ['orden']
+
+class OpcionRespuesta(models.Model):
+    """
+    Modelo para almacenar las opciones de respuesta para cada pregunta.
+    """
+    pregunta = models.ForeignKey(PreguntaFormulario, on_delete=models.CASCADE, related_name='opciones', verbose_name='Pregunta')
+    texto = models.CharField(max_length=255, verbose_name='Texto de la opción')
+    orden = models.PositiveIntegerField(default=0, verbose_name='Orden')
+    
+    def __str__(self):
+        return self.texto
+    
+    class Meta:
+        verbose_name = 'Opción de Respuesta'
+        verbose_name_plural = 'Opciones de Respuesta'
+        ordering = ['orden']
+
+class SolicitudInscripcion(models.Model):
+    """
+    Modelo para almacenar las solicitudes de inscripción de los estudiantes.
+    """
+    ESTADO_CHOICES = [
+        ('pendiente', 'Pendiente'),
+        ('aprobada', 'Aprobada'),
+        ('rechazada', 'Rechazada'),
+    ]
+    
+    curso = models.ForeignKey(Curso, on_delete=models.CASCADE, related_name='solicitudes', verbose_name='Curso')
+    estudiante = models.ForeignKey(User, on_delete=models.CASCADE, related_name='solicitudes_inscripcion', limit_choices_to={'groups__name': 'Estudiantes'}, verbose_name='Estudiante')
+    formulario = models.ForeignKey(FormularioAplicacion, on_delete=models.CASCADE, related_name='solicitudes', verbose_name='Formulario')
+    fecha_solicitud = models.DateTimeField(auto_now_add=True, verbose_name='Fecha de solicitud')
+    estado = models.CharField(max_length=10, choices=ESTADO_CHOICES, default='pendiente', verbose_name='Estado')
+    fecha_revision = models.DateTimeField(null=True, blank=True, verbose_name='Fecha de revisión')
+    revisado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='solicitudes_revisadas', verbose_name='Revisado por')
+    
+    def __str__(self):
+        return f"Solicitud de {self.estudiante.get_full_name() or self.estudiante.username} para {self.curso.name}"
+    
+    class Meta:
+        verbose_name = 'Solicitud de Inscripción'
+        verbose_name_plural = 'Solicitudes de Inscripción'
+        ordering = ['-fecha_solicitud']
+        unique_together = [['estudiante', 'curso']]
+    
+    def aprobar(self, usuario):
+        """
+        Aprueba la solicitud y crea la matrícula correspondiente.
+        """
+        self.estado = 'aprobada'
+        self.fecha_revision = timezone.now()
+        self.revisado_por = usuario
+        self.save()
+        
+        # Crear la matrícula
+        curso_academico = self.curso.curso_academico
+        matricula, created = Matriculas.objects.get_or_create(
+            course=self.curso,
+            student=self.estudiante,
+            curso_academico=curso_academico,
+            defaults={
+                'activo': True,
+                'estado': 'P'  # Pendiente
+            }
+        )
+        return matricula
+    
+    def rechazar(self, usuario):
+        """
+        Rechaza la solicitud.
+        """
+        self.estado = 'rechazada'
+        self.fecha_revision = timezone.now()
+        self.revisado_por = usuario
+        self.save()
+        return True
+
+class RespuestaEstudiante(models.Model):
+    """
+    Modelo para almacenar las respuestas de los estudiantes a las preguntas del formulario.
+    """
+    solicitud = models.ForeignKey(SolicitudInscripcion, on_delete=models.CASCADE, related_name='respuestas', verbose_name='Solicitud')
+    pregunta = models.ForeignKey(PreguntaFormulario, on_delete=models.CASCADE, related_name='respuestas', verbose_name='Pregunta')
+    opciones_seleccionadas = models.ManyToManyField(OpcionRespuesta, related_name='respuestas', verbose_name='Opciones seleccionadas')
+    
+    def __str__(self):
+        return f"Respuesta a {self.pregunta.texto} por {self.solicitud.estudiante.username}"
+    
+    class Meta:
+        verbose_name = 'Respuesta de Estudiante'
+        verbose_name_plural = 'Respuestas de Estudiantes'
+        unique_together = [['solicitud', 'pregunta']]

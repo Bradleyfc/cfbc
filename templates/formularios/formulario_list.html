@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}Formularios de Aplicación{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1>Formularios de Aplicación</h1>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'principal:formulario_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Crear Formulario
+            </a>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="row">
+        <div class="col">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col">
+            {% if formularios %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Curso</th>
+                            <th>Título</th>
+                            <th>Preguntas</th>
+                            <th>Estado</th>
+                            <th>Última modificación</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for formulario in formularios %}
+                        <tr>
+                            <td>{{ formulario.curso.name }}</td>
+                            <td>{{ formulario.titulo }}</td>
+                            <td>{{ formulario.preguntas.count }}</td>
+                            <td>
+                                {% if formulario.activo %}
+                                <span class="badge bg-success">Activo</span>
+                                {% else %}
+                                <span class="badge bg-danger">Inactivo</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ formulario.fecha_modificacion|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'principal:formulario_update' formulario.id %}"
+                                        class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit"></i> Editar
+                                    </a>
+                                    <a href="{% url 'principal:formulario_preguntas' formulario.id %}"
+                                        class="btn btn-sm btn-outline-info">
+                                        <i class="fas fa-list"></i> Preguntas
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                No hay formularios de aplicación creados. Haga clic en "Crear Formulario" para crear uno nuevo.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

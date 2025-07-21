@@ -41,4 +41,23 @@ urlpatterns = [
     
     path('export-usuarios-excel/', views.export_usuarios_excel, name='export_usuarios_excel'),
     path('verify_email/', views.verify_email, name='verify_email'),
+    
+    # Rutas para el sistema de formularios de aplicación a cursos
+    # Rutas para secretaría
+    path('formularios/', views.FormularioAplicacionListView.as_view(), name='formulario_list'),
+    path('formularios/crear/', views.FormularioAplicacionCreateView.as_view(), name='formulario_create'),
+    path('formularios/<int:pk>/editar/', views.FormularioAplicacionUpdateView.as_view(), name='formulario_update'),
+    path('formularios/<int:pk>/preguntas/', views.FormularioPreguntasView.as_view(), name='formulario_preguntas'),
+    path('formularios/<int:pk>/eliminar/', views.eliminar_formulario, name='eliminar_formulario'),
+    path('preguntas/<int:pk>/opciones/', views.PreguntaOpcionesView.as_view(), name='pregunta_opciones'),
+    path('formularios/<int:formulario_id>/guardar-pregunta-y-redirigir/', views.guardar_pregunta_y_redirigir, name='guardar_pregunta_y_redirigir'),
+    
+    # Rutas para estudiantes
+    path('cursos/aplicar/<int:curso_id>/', views.aplicar_curso, name='aplicar_curso'),
+    
+    # Rutas para profesores
+    path('solicitudes/', views.SolicitudesInscripcionListView.as_view(), name='solicitudes_list'),
+    path('solicitudes/<int:pk>/', views.SolicitudInscripcionDetailView.as_view(), name='solicitud_detail'),
+    path('solicitudes/<int:pk>/aprobar/', views.aprobar_solicitud, name='aprobar_solicitud'),
+    path('solicitudes/<int:pk>/rechazar/', views.rechazar_solicitud, name='rechazar_solicitud'),
 ]

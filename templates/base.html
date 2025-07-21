@@ -13,16 +13,36 @@
 <body>
     {% include 'header.html' %}
     
+    {% block messages %}
     {% if messages %}
     <div class="container mt-3">
         {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show mensaje-alerta" role="alert" data-mensaje="{{ message }}">
                 {{ message }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         {% endfor %}
     </div>
+    <script>
+        // Eliminar mensajes duplicados
+        document.addEventListener('DOMContentLoaded', function() {
+            const mensajes = document.querySelectorAll('.mensaje-alerta');
+            const mensajesTexto = new Set();
+            
+            mensajes.forEach(function(mensaje) {
+                const textoMensaje = mensaje.getAttribute('data-mensaje');
+                
+                if (mensajesTexto.has(textoMensaje)) {
+                    // Si ya existe un mensaje con este texto, eliminar el duplicado
+                    mensaje.remove();
+                } else {
+                    mensajesTexto.add(textoMensaje);
+                }
+            });
+        });
+    </script>
     {% endif %}
+    {% endblock %}
     
     {% block content %} {% endblock %}
 

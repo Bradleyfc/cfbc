@@ -1,13 +1,13 @@
 {% extends 'base.html' %} {% block content %}
 {% load static %}
-<div class="container" >
-  <h2 >Bienvenido {{ user.username | upper }}</h2>
-  </div>
+<div class="container">
+  <h2>Bienvenido {{ user.username | upper }}</h2>
+</div>
 <br />
 <div class="container" my-4>
-  
- 
-  
+
+
+
   {% if group_name == 'Secretaría' %}
   <h3>Administrar los Cursos Disponibles</h3>
   <br>
@@ -17,10 +17,10 @@
 
   {% endif %}
 
-  
+
 
   <!-- Mensaje de creacion -->
-<!-- 
+  <!-- 
   {% if messages %}
   <div class="container" mt-3>
     {% for message in messages %}
@@ -31,13 +31,14 @@
   </div>
   {% endif %} -->
 
-<style>
-  .card-img-top {
-    width: 100%;
-    height: 200px; /* Adjust as needed */
-    object-fit: cover;
-  }
-</style>
+  <style>
+    .card-img-top {
+      width: 100%;
+      height: 200px;
+      /* Adjust as needed */
+      object-fit: cover;
+    }
+  </style>
 
   <div class="row row-cols-1 row-cols-md-3 g-4 my-4">
     {% for course in courses %}
@@ -54,7 +55,7 @@
             <strong>Cantidad de Clases:</strong> {{course.class_quantity}}
           </p>
           <p class="card-text"><strong>Cantidad de Inscritos:</strong> {{course.enrollment_count}}</p>
-          
+
           <!-- Agregando fecha límite de inscripción -->
           {% if course.enrollment_deadline %}
           <p class="card-text">
@@ -62,41 +63,50 @@
           </p>
           {% endif %}
 
-           <!-- Agregando fecha de inicio del curso -->
-           {% if course.start_date and course.status != 'P' and course.status != 'F' %}
-           <p class="card-text">
-             <strong>Fecha de inicio del Curso:</strong> {{course.start_date|date:"d/m/Y"}}
-           </p>
-           {% endif %}
-            
-            
-           
-
-            <!-- Agregando la informacion del curso  -->
-             {% if course.status == 'F' %}
-             <h5><span class="badge bg-danger w-100" >{{course.get_status_display|upper}}</span></h5>
-             {% elif course.status == 'P' %}
-             <h5><span class="badge bg-warning text-dark w-100" >{{course.get_status_display|upper}}</span></h5>
-             {% elif course.status == 'I' %}
-             <h5><span class="badge bg-success w-100" >{{course.get_status_display|upper}}</span></h5>
-             {% elif course.status == 'IT' %}
-             <h5><span class="badge bg-info w-100" >{{course.get_status_display|upper}}</span></h5>
-             {% endif %}
+          <!-- Agregando fecha de inicio del curso -->
+          {% if course.start_date and course.status != 'P' and course.status != 'F' %}
+          <p class="card-text">
+            <strong>Fecha de inicio del Curso:</strong> {{course.start_date|date:"d/m/Y"}}
+          </p>
+          {% endif %}
 
 
-             <!-- Boton de aplicar al curso  -->
-             {% if group_name == 'Estudiantes' and not course.is_enrolled and course.status == 'I' %}
-             <a class="btn btn-sm btn-success" href="{% url 'principal:inscribirse_curso' course.id %}">Aplicar al Curso</a>
-             {% elif group_name == 'Estudiantes' and course.is_enrolled  %}
-             <p class="fw-bold bg-light text-center">Ya estás inscrito</p>
-             {% endif %}
 
 
-            
-            {% if group_name == 'Secretaría' %}
-            <a class="btn btn-sm btn-warning" href="{% url 'principal:editar_curso' course.id %}">Editar</a>
-            <a class="btn btn-sm btn-danger" href="{% url 'principal:eliminar_curso' course.id %}" onclick="return confirm('¿Estás seguro de que deseas eliminar este curso?')">Eliminar</a>
-            {% endif %}
+          <!-- Agregando la informacion del curso  -->
+          {% if course.status == 'F' %}
+          <h5><span class="badge bg-danger w-100">{{course.get_status_display|upper}}</span></h5>
+          {% elif course.status == 'P' %}
+          <h5><span class="badge bg-warning text-dark w-100">{{course.get_status_display|upper}}</span></h5>
+          {% elif course.status == 'I' %}
+          <h5><span class="badge bg-success w-100">{{course.get_status_display|upper}}</span></h5>
+          {% elif course.status == 'IT' %}
+          <h5><span class="badge bg-info w-100">{{course.get_status_display|upper}}</span></h5>
+          {% endif %}
+
+
+          <!-- Boton de aplicar al curso  -->
+          {% if group_name == 'Estudiantes' and not course.is_enrolled and course.status == 'I' %}
+          <a class="btn btn-sm btn-success" href="{% url 'principal:aplicar_curso' course.id %}">Aplicar al Curso</a>
+          {% elif group_name == 'Estudiantes' and course.is_enrolled %}
+          <p class="fw-bold bg-light text-center">Ya estás inscrito</p>
+          {% endif %}
+
+
+
+          {% if group_name == 'Secretaría' %}
+          <a class="btn btn-sm btn-warning" href="{% url 'principal:editar_curso' course.id %}">Editar</a>
+          <a class="btn btn-sm btn-danger" href="{% url 'principal:eliminar_curso' course.id %}"
+            onclick="return confirm('¿Estás seguro de que deseas eliminar este curso?')">Eliminar</a>
+          {% if course.formulario_aplicacion %}
+          <a class="btn btn-sm btn-warning"
+            href="{% url 'principal:formulario_update' course.formulario_aplicacion.id %}">Editar Formulario de
+            Aplicación</a>
+          {% else %}
+          <a class="btn btn-sm btn-success"
+            href="{% url 'principal:formulario_create' %}?curso_id={{ course.id }}">Formulario de Aplicación</a>
+          {% endif %}
+          {% endif %}
         </div>
       </div>
     </div>

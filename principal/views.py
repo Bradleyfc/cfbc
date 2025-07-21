@@ -3,26 +3,34 @@ from django.contrib.auth.forms import UserCreationForm
 from django.views import View
 from django.core.mail import send_mail
 from django.conf import settings
-from django.views.generic import ListView, DetailView, TemplateView, CreateView, UpdateView
+from django.views.generic import ListView, DetailView, TemplateView, CreateView, UpdateView, FormView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import get_object_or_404, redirect, render
-from django.contrib.auth.decorators import login_required
-from django.urls import reverse_lazy
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.urls import reverse_lazy, reverse
 from django.utils.decorators import method_decorator
 from django.contrib.auth import logout
 from django.contrib import messages
-from .forms import CustomUserCreationForm, CourseForm, CalificacionesForm, NotaIndividualFormSet # Importa NotaIndividualFormSet
+from django.utils import timezone
+from .forms import (
+    CustomUserCreationForm, CourseForm, CalificacionesForm, NotaIndividualFormSet,
+    FormularioAplicacionForm, PreguntaFormularioForm, OpcionRespuestaForm,
+    OpcionRespuestaFormSet, PreguntaFormularioFormSet, RespuestaEstudianteForm
+)
 from django.contrib.auth.models import Group, User
 from django.db.models import Q, Max
 from datetime import date, datetime
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.template.loader import get_template
 from xhtml2pdf import pisa
 from io import BytesIO
 import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from accounts.models import Registro
-from .models import CursoAcademico, Curso, Matriculas, Calificaciones, Asistencia
+from .models import (
+    CursoAcademico, Curso, Matriculas, Calificaciones, Asistencia,
+    FormularioAplicacion, PreguntaFormulario, OpcionRespuesta, SolicitudInscripcion, RespuestaEstudiante
+)
 
 # Create your views here.
 
@@ -577,13 +585,16 @@ def registro(request):
                 print(f"Error al enviar email: {str(e)}")
                 messages.error(request, 'Error al enviar el código de verificación. Por favor, intente nuevamente más tarde.')
         else:
-            # Mostrar errores específicos como mensajes
+            # Mostrar solo errores específicos como mensajes, excepto email y carnet
             for field, errors in user_creation_form.errors.items():
                 for error in errors:
-                    if field == 'password2' and 'password_mismatch' in error:
-                        messages.error(request, 'Las contraseñas no coinciden. Por favor, asegúrese de escribir la misma contraseña en ambos campos.')
-                    else:
-                        messages.error(request, f"{field}: {error}")
+                    # No mostrar errores de email y carnet como mensajes
+                    if field not in ['email', 'carnet']:
+                        if field == 'password2' and 'password_mismatch' in error:
+                            messages.error(request, 'Las contraseñas no coinciden. Por favor, asegúrese de escribir la misma contraseña en ambos campos.')
+                        else:
+                            # No mostrar errores como mensajes para que aparezcan solo en los campos
+                            pass
             print(f"Errores en el formulario: {user_creation_form.errors}")
     else:
         user_creation_form = CustomUserCreationForm()
@@ -665,6 +676,13 @@ class ProfileView(BaseContextMixin, TemplateView):
             else:
                 assigned_courses = Curso.objects.none()
             context['assigned_courses'] = assigned_courses
+            
+            # Obtener las solicitudes de inscripción pendientes para los cursos del profesor
+            pending_solicitudes = SolicitudInscripcion.objects.filter(
+                curso__teacher=user,
+                estado='pendiente'
+            ).order_by('-fecha_solicitud')
+            context['pending_solicitudes'] = pending_solicitudes
         elif user.groups.first().name == 'Estudiantes':
             # Obtener los cursos en los que el estudiante está inscrito y que pertenecen al curso académico activo
             curso_academico_activo = CursoAcademico.objects.filter(activo=True).first()
@@ -940,8 +958,6 @@ class CourseCreateView(LoginRequiredMixin, CreateView):
     success_url = reverse_lazy('principal:cursos')
 
     def form_valid(self, form):
-        # Asigna el profesor actual al curso antes de guardar
-        form.instance.teacher = self.request.user
         # Asigna el curso académico activo al curso
         active_academic_course = CursoAcademico.objects.filter(activo=True).first()
         if active_academic_course:
@@ -1447,3 +1463,500 @@ def undo_last_asistencia(request, course_id):
 
     
 
+# Vistas para el sistema de formularios de aplicación a cursos
+
+class SecretariaRequiredMixin(UserPassesTestMixin):
+    """
+    Mixin que verifica que el usuario pertenezca al grupo Secretaría.
+    """
+    def test_func(self):
+        return self.request.user.groups.filter(name='Secretaría').exists()
+
+class ProfesorRequiredMixin(UserPassesTestMixin):
+    """
+    Mixin que verifica que el usuario pertenezca al grupo Profesores.
+    """
+    def test_func(self):
+        return self.request.user.groups.filter(name='Profesores').exists()
+
+class FormularioAplicacionListView(LoginRequiredMixin, SecretariaRequiredMixin, ListView):
+    """
+    Vista para listar los formularios de aplicación creados por el grupo secretaría.
+    """
+    model = FormularioAplicacion
+    template_name = 'formularios/formulario_list.html'
+    context_object_name = 'formularios'
+
+    def get_queryset(self):
+        return FormularioAplicacion.objects.all().order_by('-fecha_modificacion')
+
+class FormularioAplicacionCreateView(LoginRequiredMixin, SecretariaRequiredMixin, CreateView):
+    """
+    Vista para crear un nuevo formulario de aplicación.
+    """
+    model = FormularioAplicacion
+    form_class = FormularioAplicacionForm
+    template_name = 'formularios/formulario_form.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Crear Formulario de Aplicación'
+        
+        # Verificar si se recibió un curso_id en la URL
+        curso_id = self.request.GET.get('curso_id')
+        if curso_id:
+            try:
+                curso = Curso.objects.get(id=curso_id)
+                context['curso_preseleccionado'] = curso
+                return context
+            except Curso.DoesNotExist:
+                pass
+        
+        # Obtener los cursos que no tienen formulario de aplicación
+        cursos_sin_formulario = Curso.objects.filter(
+            curso_academico__activo=True
+        ).exclude(
+            id__in=FormularioAplicacion.objects.values_list('curso_id', flat=True)
+        )
+        context['cursos'] = cursos_sin_formulario
+        
+        return context
+        
+    def get_initial(self):
+        """
+        Establece valores iniciales para el formulario.
+        """
+        initial = super().get_initial()
+        initial['descripcion'] = "Por favor, conteste responsablemente todas las preguntas que le hacemos a continuación, eso ayudará a los profesores a una mejor organización del curso. Muchas gracias."
+        return initial
+    
+    def form_valid(self, form):
+        curso_id = self.request.POST.get('curso')
+        if curso_id:
+            form.instance.curso = get_object_or_404(Curso, id=curso_id)
+            response = super().form_valid(form)
+            # No añadimos mensaje aquí, lo indicaremos con un parámetro
+            return response
+        else:
+            messages.error(self.request, 'Debe seleccionar un curso.')
+            return self.form_invalid(form)
+    
+    def get_success_url(self):
+        # Añadir parámetro para indicar que viene de la creación del formulario
+        return reverse('principal:formulario_preguntas', kwargs={'pk': self.object.pk}) + '?from_create=1'
+
+class FormularioAplicacionUpdateView(LoginRequiredMixin, SecretariaRequiredMixin, UpdateView):
+    """
+    Vista para editar un formulario de aplicación existente.
+    """
+    model = FormularioAplicacion
+    form_class = FormularioAplicacionForm
+    template_name = 'formularios/formulario_form.html'
+    
+    def get_object(self, queryset=None):
+        """
+        Obtiene el objeto que se va a editar y maneja posibles errores.
+        """
+        try:
+            obj = super().get_object(queryset)
+            return obj
+        except Exception as e:
+            # Registrar el error para depuración
+            print(f"Error al obtener el objeto FormularioAplicacion: {e}")
+            # Redirigir a la lista de formularios con un mensaje de error
+            messages.error(self.request, f"No se pudo encontrar el formulario solicitado. Error: {e}")
+            return None
+    
+    def get(self, request, *args, **kwargs):
+        """
+        Maneja la solicitud GET y redirige si no se encuentra el objeto.
+        """
+        self.object = self.get_object()
+        if self.object is None:
+            return redirect('principal:formulario_list')
+        return super().get(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Editar Formulario de Aplicación'
+        return context
+    
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, 'Formulario de aplicación actualizado correctamente.')
+        return response
+    
+    def get_success_url(self):
+        return reverse('principal:formulario_preguntas', kwargs={'pk': self.object.pk})
+
+class FormularioPreguntasView(LoginRequiredMixin, SecretariaRequiredMixin, UpdateView):
+    """
+    Vista para gestionar las preguntas de un formulario de aplicación.
+    """
+    model = FormularioAplicacion
+    template_name = 'formularios/formulario_preguntas.html'
+    fields = []  # No necesitamos campos para esta vista
+    
+    def get(self, request, *args, **kwargs):
+        # Limpiar todos los mensajes existentes para evitar duplicados
+        storage = messages.get_messages(request)
+        # Consumir todos los mensajes para limpiarlos
+        for _ in storage:
+            pass
+        
+        # Si viene de la creación del formulario, mostrar un solo mensaje
+        if request.GET.get('from_create'):
+            messages.success(request, 'Formulario de aplicación creado correctamente.')
+        
+        response = super().get(request, *args, **kwargs)
+        return response
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        formulario = self.get_object()
+        
+        if self.request.POST:
+            context['pregunta_formset'] = PreguntaFormularioFormSet(
+                self.request.POST, instance=formulario
+            )
+        else:
+            context['pregunta_formset'] = PreguntaFormularioFormSet(instance=formulario)
+        
+        context['formulario'] = formulario
+        return context
+    
+    def form_valid(self, form):
+        context = self.get_context_data()
+        pregunta_formset = context['pregunta_formset']
+        
+        if pregunta_formset.is_valid():
+            # Guardar las preguntas
+            preguntas = pregunta_formset.save()
+            
+            # Si se está redirigiendo a las opciones, buscar la última pregunta creada
+            if self.request.POST.get('redirect_to_options') or self.request.POST.get('save_and_continue'):
+                # Obtener la última pregunta creada para este formulario
+                ultima_pregunta = self.object.preguntas.order_by('-id').first()
+                if ultima_pregunta:
+                    # No mostrar mensaje aquí, lo mostraremos en la vista de opciones
+                    # Imprimir información de depuración
+                    print(f"Redirigiendo a opciones de pregunta {ultima_pregunta.id}: {ultima_pregunta.texto}")
+                    # Redirigir directamente a la página de opciones de la pregunta con parámetro
+                    return redirect(reverse('principal:pregunta_opciones', kwargs={'pk': ultima_pregunta.pk}) + '?from_redirect=1')
+            
+            # Limpiar todos los mensajes existentes antes de añadir uno nuevo
+            storage = messages.get_messages(self.request)
+            for _ in storage:
+                pass  # Consumir todos los mensajes
+            
+            # Añadir un solo mensaje de éxito
+            messages.success(self.request, 'Preguntas guardadas correctamente.')
+            
+            # Redirigir sin el parámetro from_create para evitar confusiones en futuras peticiones
+            return redirect(reverse('principal:formulario_preguntas', kwargs={'pk': self.object.pk}))
+        else:
+            return self.render_to_response(self.get_context_data(form=form))
+    
+    def get_success_url(self):
+        # Siempre redirigir a la página de preguntas del formulario
+        return reverse('principal:formulario_preguntas', kwargs={'pk': self.object.pk})
+
+class PreguntaOpcionesView(LoginRequiredMixin, SecretariaRequiredMixin, UpdateView):
+    """
+    Vista para gestionar las opciones de respuesta de una pregunta.
+    """
+    model = PreguntaFormulario
+    template_name = 'formularios/pregunta_opciones.html'
+    fields = []  # No necesitamos campos para esta vista
+    
+    def get(self, request, *args, **kwargs):
+        # Limpiar todos los mensajes existentes para evitar duplicados
+        storage = messages.get_messages(request)
+        # Consumir todos los mensajes para limpiarlos
+        for _ in storage:
+            pass
+        
+        # Si viene de la redirección de una pregunta guardada, mostrar un mensaje
+        if request.GET.get('from_redirect'):
+            messages.success(request, 'Pregunta guardada correctamente. Ahora puedes agregar opciones de respuesta.')
+        
+        response = super().get(request, *args, **kwargs)
+        return response
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        pregunta = self.get_object()
+        
+        if self.request.POST:
+            context['opcion_formset'] = OpcionRespuestaFormSet(
+                self.request.POST, instance=pregunta
+            )
+        else:
+            # Crear el formset con la instancia de la pregunta
+            # El formset ya está configurado para añadir una fila extra (extra=1)
+            context['opcion_formset'] = OpcionRespuestaFormSet(instance=pregunta)
+        
+        context['pregunta'] = pregunta
+        context['formulario'] = pregunta.formulario
+        return context
+    
+    def form_valid(self, form):
+        context = self.get_context_data()
+        opcion_formset = context['opcion_formset']
+        
+        if opcion_formset.is_valid():
+            opcion_formset.save()
+            
+            # Limpiar todos los mensajes existentes antes de añadir uno nuevo
+            storage = messages.get_messages(self.request)
+            for _ in storage:
+                pass  # Consumir todos los mensajes
+            
+            messages.success(self.request, 'Opciones de respuesta guardadas correctamente.')
+            return redirect(self.get_success_url())
+        else:
+            return self.render_to_response(self.get_context_data(form=form))
+    
+    def get_success_url(self):
+        return reverse('principal:formulario_preguntas', kwargs={'pk': self.object.formulario.pk})
+
+# Vistas para los estudiantes
+
+@login_required
+def aplicar_curso(request, curso_id):
+    """
+    Vista para que un estudiante aplique a un curso mediante un formulario dinámico.
+    """
+    curso = get_object_or_404(Curso, id=curso_id)
+    
+    # Verificar si el curso tiene un formulario de aplicación
+    try:
+        formulario = curso.formulario_aplicacion
+    except FormularioAplicacion.DoesNotExist:
+        # Si no tiene formulario, redirigir a la inscripción directa
+        return redirect('principal:inscribirse_curso', course_id=curso_id)
+    
+    # Verificar si el estudiante ya ha aplicado a este curso
+    solicitud_existente = SolicitudInscripcion.objects.filter(
+        curso=curso,
+        estudiante=request.user
+    ).first()
+    
+    if solicitud_existente:
+        messages.info(request, 'Ya has aplicado a este curso. Tu solicitud está en proceso de revisión.')
+        return redirect('principal:cursos')
+    
+    # Verificar si el estudiante ya está matriculado en este curso
+    matricula_existente = Matriculas.objects.filter(
+        course=curso,
+        student=request.user
+    ).exists()
+    
+    if matricula_existente:
+        messages.info(request, 'Ya estás matriculado en este curso.')
+        return redirect('principal:cursos')
+    
+    # Obtener las preguntas del formulario
+    preguntas = formulario.preguntas.all().order_by('orden')
+    
+    if request.method == 'POST':
+        # Crear la solicitud de inscripción
+        solicitud = SolicitudInscripcion.objects.create(
+            curso=curso,
+            estudiante=request.user,
+            formulario=formulario
+        )
+        
+        # Procesar las respuestas
+        for pregunta in preguntas:
+            respuesta = RespuestaEstudiante.objects.create(
+                solicitud=solicitud,
+                pregunta=pregunta
+            )
+            
+            # Obtener las opciones seleccionadas
+            if pregunta.tipo == 'seleccion_multiple':
+                opcion_ids = request.POST.getlist(f'pregunta_{pregunta.id}')
+                for opcion_id in opcion_ids:
+                    opcion = get_object_or_404(OpcionRespuesta, id=opcion_id)
+                    respuesta.opciones_seleccionadas.add(opcion)
+            elif pregunta.tipo == 'escritura_libre':
+                # Para preguntas de escritura libre, creamos una opción de respuesta con el texto ingresado
+                texto_respuesta = request.POST.get(f'pregunta_{pregunta.id}', '')
+                if texto_respuesta:
+                    # Crear una opción de respuesta para almacenar el texto
+                    opcion = OpcionRespuesta.objects.create(
+                        pregunta=pregunta,
+                        texto=texto_respuesta,
+                        orden=0
+                    )
+                    respuesta.opciones_seleccionadas.add(opcion)
+        
+        messages.success(request, 'Tu solicitud ha sido enviada correctamente. El profesor revisará tu aplicación.')
+        return redirect('principal:cursos')
+    
+    # Crear formularios dinámicos para cada pregunta
+    formularios_preguntas = []
+    for pregunta in preguntas:
+        form = RespuestaEstudianteForm(pregunta=pregunta)
+        formularios_preguntas.append((pregunta, form))
+    
+    context = {
+        'curso': curso,
+        'formulario': formulario,
+        'formularios_preguntas': formularios_preguntas
+    }
+    
+    return render(request, 'formularios/aplicar_curso.html', context)
+
+# Vistas para los profesores
+
+class SolicitudesInscripcionListView(LoginRequiredMixin, ProfesorRequiredMixin, ListView):
+    """
+    Vista para que un profesor vea las solicitudes de inscripción a sus cursos.
+    """
+    model = SolicitudInscripcion
+    template_name = 'formularios/solicitudes_list.html'
+    context_object_name = 'solicitudes'
+    
+    def get_queryset(self):
+        # Obtener solo las solicitudes de los cursos que imparte el profesor
+        return SolicitudInscripcion.objects.filter(
+            curso__teacher=self.request.user,
+            estado='pendiente'
+        ).order_by('-fecha_solicitud')
+
+class SolicitudInscripcionDetailView(LoginRequiredMixin, ProfesorRequiredMixin, DetailView):
+    """
+    Vista para que un profesor vea el detalle de una solicitud de inscripción.
+    """
+    model = SolicitudInscripcion
+    template_name = 'formularios/solicitud_detail.html'
+    context_object_name = 'solicitud'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        solicitud = self.get_object()
+        
+        # Verificar que el profesor sea el profesor del curso
+        if solicitud.curso.teacher != self.request.user:
+            raise PermissionDenied
+        
+        # Obtener las respuestas del estudiante
+        respuestas = solicitud.respuestas.all().select_related('pregunta').prefetch_related('opciones_seleccionadas')
+        context['respuestas'] = respuestas
+        
+        return context
+
+@login_required
+def aprobar_solicitud(request, pk):
+    """
+    Vista para que un profesor apruebe una solicitud de inscripción.
+    """
+    solicitud = get_object_or_404(SolicitudInscripcion, pk=pk)
+    
+    # Verificar que el profesor sea el profesor del curso
+    if solicitud.curso.teacher != request.user:
+        raise PermissionDenied
+    
+    # Aprobar la solicitud
+    matricula = solicitud.aprobar(request.user)
+    
+    messages.success(request, f'La solicitud de {solicitud.estudiante.get_full_name() or solicitud.estudiante.username} ha sido aprobada.')
+    return redirect('principal:solicitudes_list')
+
+@login_required
+def rechazar_solicitud(request, pk):
+    """
+    Vista para que un profesor rechace una solicitud de inscripción.
+    """
+    solicitud = get_object_or_404(SolicitudInscripcion, pk=pk)
+    
+    # Verificar que el profesor sea el profesor del curso
+    if solicitud.curso.teacher != request.user:
+        raise PermissionDenied
+    
+    # Rechazar la solicitud
+    solicitud.rechazar(request.user)
+    
+    messages.success(request, f'La solicitud de {solicitud.estudiante.get_full_name() or solicitud.estudiante.username} ha sido rechazada.')
+    return redirect('principal:solicitudes_list')
+
+@login_required
+def guardar_pregunta_y_redirigir(request, formulario_id):
+    """
+    Vista para guardar una pregunta y redirigir a la página de opciones.
+    """
+    # Verificar que el usuario pertenezca al grupo 'Secretaría'
+    if not request.user.groups.filter(name='Secretaría').exists():
+        messages.error(request, 'No tienes permisos para realizar esta acción.')
+        return redirect('principal:formulario_list')
+    
+    # Obtener el formulario
+    formulario = get_object_or_404(FormularioAplicacion, pk=formulario_id)
+    
+    if request.method == 'POST':
+        # Crear una nueva pregunta
+        requerida_value = request.POST.get('requerida', 'True')
+        requerida = requerida_value.lower() == 'true' if isinstance(requerida_value, str) else bool(requerida_value)
+        
+        # Imprimir información de depuración
+        print(f"Guardando pregunta para formulario {formulario_id}")
+        print(f"Texto: {request.POST.get('texto', '')}")
+        print(f"Tipo: {request.POST.get('tipo', 'seleccion_multiple')}")
+        print(f"Requerida: {requerida}")
+        print(f"Orden: {int(request.POST.get('orden', 0))}")
+        
+        pregunta = PreguntaFormulario(
+            formulario=formulario,
+            texto=request.POST.get('texto', ''),
+            tipo=request.POST.get('tipo', 'seleccion_multiple'),
+            requerida=requerida,
+            orden=int(request.POST.get('orden', 0))
+        )
+        pregunta.save()
+        
+        # Imprimir información de la pregunta guardada
+        print(f"Pregunta guardada con ID: {pregunta.pk}")
+        
+        # No mostramos mensaje aquí para evitar duplicación, ya que la vista FormularioPreguntasView ya muestra un mensaje
+        
+        # Usar una redirección con JavaScript
+        from django.http import HttpResponse
+        redirect_url = reverse('principal:pregunta_opciones', kwargs={'pk': pregunta.pk}) + '?from_redirect=1'
+        return HttpResponse(f"""
+            <html>
+                <head>
+                    <title>Redirigiendo...</title>
+                    <script>
+                        window.location.href = "{redirect_url}";
+                    </script>
+                </head>
+                <body>
+                    <p>Redirigiendo a la página de opciones de respuesta...</p>
+                    <p>Si no eres redirigido automáticamente, <a href="{redirect_url}">haz clic aquí</a>.</p>
+                </body>
+            </html>
+        """)
+    
+    # Si no es POST, redirigir a la página de preguntas del formulario
+    return redirect('principal:formulario_preguntas', pk=formulario_id)
+
+@login_required
+def eliminar_formulario(request, pk):
+    """
+    Vista para eliminar un formulario de aplicación.
+    """
+    # Verificar que el usuario pertenezca al grupo Secretaría
+    if not request.user.groups.filter(name='Secretaría').exists():
+        messages.error(request, 'No tienes permisos para realizar esta acción.')
+        return redirect('principal:cursos')
+    
+    formulario = get_object_or_404(FormularioAplicacion, pk=pk)
+    curso_id = formulario.curso.id  # Guardar el ID del curso antes de eliminar el formulario
+    
+    # Eliminar el formulario
+    formulario.delete()
+    
+    messages.success(request, 'El formulario de aplicación ha sido eliminado correctamente.')
+    return redirect('principal:cursos')

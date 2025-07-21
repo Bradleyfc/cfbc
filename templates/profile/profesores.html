@@ -43,8 +43,32 @@
   {% else %}
 
   <div class="alert alert-primary" role="'alert">
-    Ud. no tiene Cursos Asignados hastta el momento
+    Ud. no tiene Cursos Asignados hasta el momento
   </div>
 
   {% endif %}
-</h5>
+
+<!-- Sección de Solicitudes de Aplicación -->
+<h5 class="mb-3 mt-4">Solicitudes de Aplicación</h5>
+{% if pending_solicitudes %}
+  <ul class="list-group">
+    {% for solicitud in pending_solicitudes %}
+      <li class="list-group-item mb-2">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <strong>{{ solicitud.curso.name }}</strong>
+            <p class="mb-0 text-muted">{{ solicitud.estudiante.get_full_name|default:solicitud.estudiante.username }}</p>
+            <small class="text-muted">{{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}</small>
+          </div>
+          <a href="{% url 'principal:solicitud_detail' solicitud.id %}" class="btn btn-sm btn-primary">
+            Ver Solicitud
+          </a>
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <div class="alert alert-info" role="alert">
+    No hay solicitudes de aplicación pendientes.
+  </div>
+{% endif %}

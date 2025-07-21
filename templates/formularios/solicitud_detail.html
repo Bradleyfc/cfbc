@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block title %}Detalle de Solicitud{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1>Detalle de Solicitud</h1>
+            <h4>{{ solicitud.estudiante.get_full_name|default:solicitud.estudiante.username }}</h4>
+            <p class="text-muted">
+                Curso: {{ solicitud.curso.name }} - 
+                Fecha: {{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}
+            </p>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="row">
+        <div class="col">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>{{ solicitud.formulario.titulo }}</h5>
+                </div>
+                <div class="card-body">
+                    {% for respuesta in respuestas %}
+                    <div class="mb-4">
+                        <h5>{{ respuesta.pregunta.texto }}</h5>
+                        <div class="mt-2">
+                            {% if respuesta.pregunta.tipo == 'escritura_libre' %}
+                                {% for opcion in respuesta.opciones_seleccionadas.all %}
+                                <div class="card">
+                                    <div class="card-body">
+                                        {{ opcion.texto|linebreaks }}
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="card">
+                                    <div class="card-body text-muted">
+                                        No se proporcionó respuesta
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <ul class="list-group">
+                                    {% for opcion in respuesta.opciones_seleccionadas.all %}
+                                    <li class="list-group-item">{{ opcion.texto }}</li>
+                                    {% empty %}
+                                    <li class="list-group-item text-muted">No se seleccionó ninguna opción</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <hr>
+                    {% endfor %}
+
+                    <div class="d-flex justify-content-between mt-3">
+                        <a href="{% url 'principal:solicitudes_list' %}" class="btn btn-secondary">Volver</a>
+                        <div>
+                            <a href="{% url 'principal:rechazar_solicitud' solicitud.id %}" class="btn btn-danger me-2">
+                                <i class="fas fa-times"></i> Denegar
+                            </a>
+                            <a href="{% url 'principal:aprobar_solicitud' solicitud.id %}" class="btn btn-success">
+                                <i class="fas fa-check"></i> Aceptar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

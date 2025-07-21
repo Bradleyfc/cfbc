@@ -3,10 +3,10 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from accounts.models import Registro
-from .models import Curso, Calificaciones, NotaIndividual # Importa NotaIndividual
+from .models import Curso, Calificaciones, NotaIndividual, FormularioAplicacion, PreguntaFormulario, OpcionRespuesta, SolicitudInscripcion, RespuestaEstudiante
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Field, Submit
-from django.forms import inlineformset_factory # Importa inlineformset_factory
+from crispy_forms.layout import Layout, Field, Submit, Div, HTML, ButtonHolder, Button
+from django.forms import inlineformset_factory, modelformset_factory # Importa inlineformset_factory
 
 class CustomUserCreationForm(UserCreationForm):
     first_name = forms.CharField(label='Nombre', max_length=150, required=True)
@@ -63,6 +63,25 @@ class CustomUserCreationForm(UserCreationForm):
     class Meta:
         model = User
         fields = ['username', 'first_name', 'last_name', 'email', 'password1', 'password2']
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Configurar el helper de crispy forms para no mostrar errores no asociados a campos
+        self.helper = FormHelper()
+        self.helper.form_show_errors = False  # No mostrar errores generales
+        self.helper.error_text_inline = True  # Mostrar errores en línea con los campos
+    
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if email and User.objects.filter(email=email).exists():
+            raise forms.ValidationError("Ya existe un usuario registrado con este correo electrónico.")
+        return email
+    
+    def clean_carnet(self):
+        carnet = self.cleaned_data.get('carnet')
+        if carnet and Registro.objects.filter(carnet=carnet).exists():
+            raise forms.ValidationError("Ya existe un usuario registrado con este número de carnet.")
+        return carnet
     
     def clean_password2(self):
         password1 = self.cleaned_data.get("password1")
@@ -186,3 +205,126 @@ NotaIndividualFormSet = inlineformset_factory(
 
 
 
+# Formularios para la gestión de formularios de aplicación a cursos
+
+class FormularioAplicacionForm(forms.ModelForm):
+    """
+    Formulario para crear o editar un formulario de aplicación a un curso.
+    """
+    class Meta:
+        model = FormularioAplicacion
+        fields = ['titulo', 'descripcion', 'activo']
+        widgets = {
+            'descripcion': forms.Textarea(attrs={'rows': 3}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_tag = True
+        self.helper.layout = Layout(
+            Field('titulo'),
+            Field('descripcion'),
+            Field('activo'),
+            ButtonHolder(
+                Submit('submit', 'Guardar', css_class='btn btn-primary'),
+                Button('cancel', 'Cancelar', css_class='btn btn-secondary', onclick="window.history.back()")
+            )
+        )
+
+class PreguntaFormularioForm(forms.ModelForm):
+    """
+    Formulario para crear o editar una pregunta de un formulario.
+    """
+    class Meta:
+        model = PreguntaFormulario
+        fields = ['texto', 'tipo', 'requerida', 'orden']
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_tag = True
+        self.helper.layout = Layout(
+            Field('texto'),
+            Field('tipo'),
+            Field('requerida'),
+            Field('orden'),
+            ButtonHolder(
+                Submit('submit', 'Guardar', css_class='btn btn-primary'),
+                Button('cancel', 'Cancelar', css_class='btn btn-secondary', onclick="window.history.back()")
+            )
+        )
+
+class OpcionRespuestaForm(forms.ModelForm):
+    """
+    Formulario para crear o editar una opción de respuesta.
+    """
+    class Meta:
+        model = OpcionRespuesta
+        fields = ['texto', 'orden']
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_tag = True
+        self.helper.layout = Layout(
+            Field('texto'),
+            Field('orden'),
+            ButtonHolder(
+                Submit('submit', 'Guardar', css_class='btn btn-primary'),
+                Button('cancel', 'Cancelar', css_class='btn btn-secondary', onclick="window.history.back()")
+            )
+        )
+
+# Formsets para manejar múltiples preguntas y opciones de respuesta
+OpcionRespuestaFormSet = inlineformset_factory(
+    PreguntaFormulario,
+    OpcionRespuesta,
+    form=OpcionRespuestaForm,
+    extra=1,  # Agregar una fila extra automáticamente
+    can_delete=True,
+    fields=['texto', 'orden']
+)
+
+PreguntaFormularioFormSet = inlineformset_factory(
+    FormularioAplicacion,
+    PreguntaFormulario,
+    form=PreguntaFormularioForm,
+    extra=1,
+    can_delete=True,
+    fields=['texto', 'tipo', 'requerida', 'orden']
+)
+
+class SolicitudInscripcionForm(forms.ModelForm):
+    """
+    Formulario para crear una solicitud de inscripción.
+    Este formulario no se usa directamente, sino que se genera dinámicamente
+    basado en las preguntas del formulario de aplicación.
+    """
+    class Meta:
+        model = SolicitudInscripcion
+        fields = []  # No incluimos campos, se generan dinámicamente
+
+class RespuestaEstudianteForm(forms.Form):
+    """
+    Formulario base para las respuestas de los estudiantes.
+    Se generará dinámicamente basado en las preguntas del formulario.
+    """
+    def __init__(self, pregunta, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.pregunta = pregunta
+        
+        if pregunta.tipo == 'seleccion_multiple':
+            opciones = [(opcion.id, opcion.texto) for opcion in pregunta.opciones.all()]
+            self.fields[f'pregunta_{pregunta.id}'] = forms.MultipleChoiceField(
+                label=pregunta.texto,
+                choices=opciones,
+                required=pregunta.requerida,
+                widget=forms.CheckboxSelectMultiple
+            )
+        elif pregunta.tipo == 'escritura_libre':
+            self.fields[f'pregunta_{pregunta.id}'] = forms.CharField(
+                label=pregunta.texto,
+                required=pregunta.requerida,
+                widget=forms.Textarea(attrs={'rows': 3})
+            )
