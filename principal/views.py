@@ -490,19 +490,60 @@ class HomeView(BaseContextMixin, TemplateView):
         grouped_courses = [courses[i:i + 4] for i in range(0, len(courses), 4)]
         context['grouped_courses'] = grouped_courses
         student = self.request.user if self.request.user.is_authenticated else None
+        
+        # Crear conjuntos de IDs de cursos con solicitudes pendientes y rechazadas
+        cursos_con_solicitudes_pendientes = set()
+        cursos_con_solicitudes_rechazadas = set()
+        
+        if student:
+            # Obtener todos los IDs de cursos con solicitudes pendientes
+            cursos_con_solicitudes_pendientes = set(
+                SolicitudInscripcion.objects.filter(
+                    estudiante=student,
+                    estado='pendiente'
+                ).values_list('curso_id', flat=True)
+            )
+            
+            # Obtener todos los IDs de cursos con solicitudes rechazadas
+            cursos_con_solicitudes_rechazadas = set(
+                SolicitudInscripcion.objects.filter(
+                    estudiante=student,
+                    estado='rechazada'
+                ).values_list('curso_id', flat=True)
+            )
+            
+            print(f"DEBUG: Home - Cursos con solicitudes pendientes: {cursos_con_solicitudes_pendientes}")
+            print(f"DEBUG: Home - Cursos con solicitudes rechazadas: {cursos_con_solicitudes_rechazadas}")
 
         for item in courses:
             if student:
-                registration = Matriculas.objects.filter(
-                    course=item, student=student).first()
-                item.is_enrolled = registration is not None
+                # Verificar si el estudiante está matriculado
+                item.is_enrolled = Matriculas.objects.filter(
+                    course=item, 
+                    student=student
+                ).exists()
+                
+                # Verificar si el estudiante tiene una solicitud pendiente para este curso
+                item.tiene_solicitud_pendiente = item.id in cursos_con_solicitudes_pendientes
+                
+                # Verificar si el estudiante tiene una solicitud rechazada para este curso
+                item.tiene_solicitud_rechazada = item.id in cursos_con_solicitudes_rechazadas
+                
+                if item.tiene_solicitud_pendiente:
+                    print(f"DEBUG: Home - Curso {item.name} (ID: {item.id}) tiene solicitud pendiente")
+                if item.tiene_solicitud_rechazada:
+                    print(f"DEBUG: Home - Curso {item.name} (ID: {item.id}) tiene solicitud rechazada")
             else:
                 item.is_enrolled = False
-
+                item.tiene_solicitud_pendiente = False
+                item.tiene_solicitud_rechazada = False
+            
+            # Calcular el conteo de inscripciones
             enrollment_count = Matriculas.objects.filter(course=item).count()
             item.enrollment_count = enrollment_count
 
         context['courses'] = courses
+        return context
         return context
 
 
@@ -523,6 +564,66 @@ class ListadoCursosView(BaseContextMixin, ListView):
             # Filtrar los cursos por el CursoAcademico activo
             return Curso.objects.filter(curso_academico=curso_academico_activo)
         return Curso.objects.none() # No mostrar cursos si no hay un CursoAcademico activo
+        
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        student = self.request.user if self.request.user.is_authenticated else None
+        
+        # Crear conjuntos de IDs de cursos con solicitudes pendientes y rechazadas
+        cursos_con_solicitudes_pendientes = set()
+        cursos_con_solicitudes_rechazadas = set()
+        
+        if student:
+            # Obtener todos los IDs de cursos con solicitudes pendientes
+            cursos_con_solicitudes_pendientes = set(
+                SolicitudInscripcion.objects.filter(
+                    estudiante=student,
+                    estado='pendiente'
+                ).values_list('curso_id', flat=True)
+            )
+            
+            # Obtener todos los IDs de cursos con solicitudes rechazadas
+            cursos_con_solicitudes_rechazadas = set(
+                SolicitudInscripcion.objects.filter(
+                    estudiante=student,
+                    estado='rechazada'
+                ).values_list('curso_id', flat=True)
+            )
+            
+            print(f"DEBUG: Cursos con solicitudes pendientes: {cursos_con_solicitudes_pendientes}")
+            print(f"DEBUG: Cursos con solicitudes rechazadas: {cursos_con_solicitudes_rechazadas}")
+        
+        # Procesar cada curso
+        for course in context['courses']:
+            if student:
+                # Verificar si el estudiante está matriculado
+                course.is_enrolled = Matriculas.objects.filter(
+                    course=course, 
+                    student=student
+                ).exists()
+                
+                # Verificar si el estudiante tiene una solicitud pendiente para este curso
+                course.tiene_solicitud_pendiente = course.id in cursos_con_solicitudes_pendientes
+                
+                # Verificar si el estudiante tiene una solicitud rechazada para este curso
+                course.tiene_solicitud_rechazada = course.id in cursos_con_solicitudes_rechazadas
+                
+                if course.tiene_solicitud_pendiente:
+                    print(f"DEBUG: Curso {course.name} (ID: {course.id}) tiene solicitud pendiente")
+                if course.tiene_solicitud_rechazada:
+                    print(f"DEBUG: Curso {course.name} (ID: {course.id}) tiene solicitud rechazada")
+            else:
+                course.is_enrolled = False
+                course.tiene_solicitud_pendiente = False
+                course.tiene_solicitud_rechazada = False
+            
+            # Calcular el conteo de inscripciones
+            enrollment_count = Matriculas.objects.filter(course=course).count()
+            course.enrollment_count = enrollment_count
+        
+        return context
+            
+        return context
 
 # para cerrar sesion
 
@@ -1629,9 +1730,16 @@ class FormularioPreguntasView(LoginRequiredMixin, SecretariaRequiredMixin, Updat
         context = self.get_context_data()
         pregunta_formset = context['pregunta_formset']
         
+        # Imprimir datos del formulario para depuración
+        print("\n=== DATOS DEL FORMULARIO RECIBIDOS ===")
+        for key, value in self.request.POST.items():
+            print(f"{key}: '{value}'")
+        print("=====================================\n")
+        
         if pregunta_formset.is_valid():
             # Guardar las preguntas
-            preguntas = pregunta_formset.save()
+            preguntas = pregunta_formset.save(commit=True)
+            print(f"Preguntas guardadas: {preguntas}")
             
             # Si se está redirigiendo a las opciones, buscar la última pregunta creada
             if self.request.POST.get('redirect_to_options') or self.request.POST.get('save_and_continue'):
@@ -1652,14 +1760,18 @@ class FormularioPreguntasView(LoginRequiredMixin, SecretariaRequiredMixin, Updat
             # Añadir un solo mensaje de éxito
             messages.success(self.request, 'Preguntas guardadas correctamente.')
             
-            # Redirigir sin el parámetro from_create para evitar confusiones en futuras peticiones
-            return redirect(reverse('principal:formulario_preguntas', kwargs={'pk': self.object.pk}))
+            # Redirigir a la página de cursos
+            return redirect(reverse('principal:cursos'))
         else:
+            print("\n=== ERRORES DEL FORMSET ===")
+            for i, form_errors in enumerate(pregunta_formset.errors):
+                print(f"Formulario {i}: {form_errors}")
+            print("=========================\n")
             return self.render_to_response(self.get_context_data(form=form))
     
     def get_success_url(self):
-        # Siempre redirigir a la página de preguntas del formulario
-        return reverse('principal:formulario_preguntas', kwargs={'pk': self.object.pk})
+        # Redirigir a la página de cursos
+        return reverse('principal:cursos')
 
 class PreguntaOpcionesView(LoginRequiredMixin, SecretariaRequiredMixin, UpdateView):
     """
@@ -1700,12 +1812,60 @@ class PreguntaOpcionesView(LoginRequiredMixin, SecretariaRequiredMixin, UpdateVi
         context['formulario'] = pregunta.formulario
         return context
     
-    def form_valid(self, form):
-        context = self.get_context_data()
-        opcion_formset = context['opcion_formset']
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        pregunta = self.object
         
-        if opcion_formset.is_valid():
-            opcion_formset.save()
+        # Imprimir información de depuración detallada
+        print("\n=== DATOS DEL FORMULARIO RECIBIDOS ===")
+        for key, value in request.POST.items():
+            print(f"{key}: '{value}'")
+        print("=====================================\n")
+        
+        # Procesar los datos del formulario manualmente
+        try:
+            # Obtener el número total de opciones
+            total_opciones = int(request.POST.get('total_opciones', 0))
+            print(f"Total de opciones: {total_opciones}")
+            
+            # Procesar cada opción
+            for i in range(total_opciones):
+                opcion_id = request.POST.get(f'opcion_id_{i}', '')
+                texto = request.POST.get(f'texto_{i}', '')
+                orden = request.POST.get(f'orden_{i}', i)
+                eliminar = request.POST.get(f'eliminar_{i}', '') == 'on'
+                
+                print(f"Opción {i}: id='{opcion_id}', texto='{texto}', orden={orden}, eliminar={eliminar}")
+                
+                # Si la opción está marcada para eliminar, eliminarla
+                if eliminar and opcion_id:
+                    try:
+                        opcion = OpcionRespuesta.objects.get(id=opcion_id)
+                        opcion.delete()
+                        print(f"  - Opción eliminada: {opcion}")
+                        continue
+                    except OpcionRespuesta.DoesNotExist:
+                        pass
+                
+                # Si la opción ya existe, actualizarla
+                if opcion_id:
+                    try:
+                        opcion = OpcionRespuesta.objects.get(id=opcion_id)
+                        opcion.texto = texto
+                        opcion.orden = int(orden) if orden else i
+                        opcion.save()
+                        print(f"  - Opción actualizada: {opcion}")
+                    except OpcionRespuesta.DoesNotExist:
+                        pass
+                # Si es una nueva opción, crearla
+                else:
+                    opcion = OpcionRespuesta(
+                        pregunta=pregunta,
+                        texto=texto,
+                        orden=int(orden) if orden else i
+                    )
+                    opcion.save()
+                    print(f"  - Opción creada: {opcion}")
             
             # Limpiar todos los mensajes existentes antes de añadir uno nuevo
             storage = messages.get_messages(self.request)
@@ -1714,8 +1874,27 @@ class PreguntaOpcionesView(LoginRequiredMixin, SecretariaRequiredMixin, UpdateVi
             
             messages.success(self.request, 'Opciones de respuesta guardadas correctamente.')
             return redirect(self.get_success_url())
-        else:
-            return self.render_to_response(self.get_context_data(form=form))
+        except Exception as e:
+            print(f"Error al procesar el formulario: {e}")
+            messages.error(self.request, f'Error al guardar las opciones: {e}')
+            return self.get(request, *args, **kwargs)
+    
+
+    
+    def form_invalid(self, opcion_formset):
+        # Mostrar errores específicos
+        print("\n=== ERRORES DEL FORMSET ===")
+        for i, form_errors in enumerate(opcion_formset.errors):
+            print(f"Formulario {i}: {form_errors}")
+            for field, errors in form_errors.items():
+                for error in errors:
+                    messages.error(self.request, f"Error en formulario {i}, campo {field}: {error}")
+        print("=========================\n")
+        
+        # Preparar el contexto para renderizar la respuesta
+        context = self.get_context_data()
+        context['opcion_formset'] = opcion_formset
+        return self.render_to_response(context)
     
     def get_success_url(self):
         return reverse('principal:formulario_preguntas', kwargs={'pk': self.object.formulario.pk})
@@ -1760,12 +1939,30 @@ def aplicar_curso(request, curso_id):
     preguntas = formulario.preguntas.all().order_by('orden')
     
     if request.method == 'POST':
-        # Crear la solicitud de inscripción
-        solicitud = SolicitudInscripcion.objects.create(
-            curso=curso,
-            estudiante=request.user,
-            formulario=formulario
-        )
+        try:
+            # Crear la solicitud de inscripción
+            solicitud = SolicitudInscripcion.objects.create(
+                curso=curso,
+                estudiante=request.user,
+                formulario=formulario,
+                estado='pendiente'  # Asegurarse de que el estado sea 'pendiente'
+            )
+            
+            # Mensaje de depuración
+            print(f"DEBUG: Solicitud creada - ID: {solicitud.id}, Estado: {solicitud.estado}, Curso: {curso.name}, Estudiante: {request.user.username}")
+            
+            # Verificar que la solicitud se haya creado correctamente
+            solicitud_verificada = SolicitudInscripcion.objects.filter(
+                id=solicitud.id
+            ).first()
+            
+            if solicitud_verificada:
+                print(f"DEBUG: Solicitud verificada - ID: {solicitud_verificada.id}, Estado: {solicitud_verificada.estado}")
+            else:
+                print("ERROR: No se pudo verificar la solicitud creada")
+        except Exception as e:
+            print(f"ERROR al crear la solicitud: {str(e)}")
+            raise
         
         # Procesar las respuestas
         for pregunta in preguntas:
@@ -1792,8 +1989,10 @@ def aplicar_curso(request, curso_id):
                     )
                     respuesta.opciones_seleccionadas.add(opcion)
         
-        messages.success(request, 'Tu solicitud ha sido enviada correctamente. El profesor revisará tu aplicación.')
-        return redirect('principal:cursos')
+        # En lugar de redirigir a la lista de cursos, redirigimos a una página de confirmación
+        # que luego redirigirá automáticamente a la lista de cursos
+        request.session['solicitud_enviada_curso_id'] = curso_id
+        return redirect('principal:solicitud_enviada', curso_id=curso_id)
     
     # Crear formularios dinámicos para cada pregunta
     formularios_preguntas = []
@@ -1808,6 +2007,29 @@ def aplicar_curso(request, curso_id):
     }
     
     return render(request, 'formularios/aplicar_curso.html', context)
+
+# Vista para mostrar la página de confirmación después de enviar una solicitud
+@login_required
+def solicitud_enviada(request, curso_id):
+    """
+    Vista para mostrar una página de confirmación después de enviar una solicitud.
+    """
+    curso = get_object_or_404(Curso, id=curso_id)
+    
+    # Verificar si el estudiante realmente envió una solicitud para este curso
+    solicitud_existente = SolicitudInscripcion.objects.filter(
+        curso=curso,
+        estudiante=request.user
+    ).exists()
+    
+    if not solicitud_existente:
+        # Si no existe una solicitud, redirigir a la lista de cursos
+        return redirect('principal:cursos')
+    
+    # Imprimir mensaje de depuración
+    print(f"DEBUG: Mostrando página de confirmación para solicitud del curso {curso.name} (ID: {curso.id})")
+    
+    return render(request, 'formularios/solicitud_enviada.html', {'curso': curso})
 
 # Vistas para los profesores
 
@@ -1862,8 +2084,15 @@ def aprobar_solicitud(request, pk):
     # Aprobar la solicitud
     matricula = solicitud.aprobar(request.user)
     
+    # Agregar un solo mensaje de éxito
     messages.success(request, f'La solicitud de {solicitud.estudiante.get_full_name() or solicitud.estudiante.username} ha sido aprobada.')
-    return redirect('principal:solicitudes_list')
+    
+    # Verificar si la solicitud viene del perfil o de la página de solicitudes
+    referer = request.META.get('HTTP_REFERER', '')
+    if 'profile' in referer:
+        return redirect('principal:profile')
+    else:
+        return redirect('principal:solicitudes_list')
 
 @login_required
 def rechazar_solicitud(request, pk):

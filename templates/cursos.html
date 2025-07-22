@@ -1,5 +1,6 @@
 {% extends 'base.html' %} {% block content %}
 {% load static %}
+{% load curso_tags %}
 <div class="container">
   <h2>Bienvenido {{ user.username | upper }}</h2>
 </div>
@@ -85,11 +86,20 @@
           {% endif %}
 
 
-          <!-- Boton de aplicar al curso  -->
-          {% if group_name == 'Estudiantes' and not course.is_enrolled and course.status == 'I' %}
-          <a class="btn btn-sm btn-success" href="{% url 'principal:aplicar_curso' course.id %}">Aplicar al Curso</a>
-          {% elif group_name == 'Estudiantes' and course.is_enrolled %}
-          <p class="fw-bold bg-light text-center">Ya estás inscrito</p>
+          <!-- Boton de aplicar al curso o etiquetas de estado -->
+          {% if group_name == 'Estudiantes' %}
+            <!-- Verificar el estado de la solicitud para este curso usando los template tags -->
+            {% tiene_solicitud_pendiente user.id course.id as tiene_solicitud_pendiente %}
+            {% tiene_solicitud_rechazada user.id course.id as tiene_solicitud_rechazada %}
+            {% if tiene_solicitud_pendiente %}
+              <h5><span class="badge bg-warning text-dark w-100">Pendiente a Aprobación</span></h5>
+            {% elif tiene_solicitud_rechazada %}
+              <h5><span class="badge bg-danger w-100">Aplicación Denegada</span></h5>
+            {% elif course.is_enrolled %}
+              <p class="fw-bold bg-light text-center">Ya estás inscrito</p>
+            {% elif course.status == 'I' %}
+              <a class="btn btn-sm btn-success" href="{% url 'principal:aplicar_curso' course.id %}">Aplicar al Curso</a>
+            {% endif %}
           {% endif %}
 
 
@@ -99,12 +109,16 @@
           <a class="btn btn-sm btn-danger" href="{% url 'principal:eliminar_curso' course.id %}"
             onclick="return confirm('¿Estás seguro de que deseas eliminar este curso?')">Eliminar</a>
           {% if course.formulario_aplicacion %}
-          <a class="btn btn-sm btn-warning"
-            href="{% url 'principal:formulario_update' course.formulario_aplicacion.id %}">Editar Formulario de
-            Aplicación</a>
+          <div class="mt-2">
+            <a class="btn btn-xs btn-info" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;"
+              href="{% url 'principal:formulario_update' course.formulario_aplicacion.id %}">Editar Formulario de
+              Aplicación</a>
+          </div>
           {% else %}
-          <a class="btn btn-sm btn-success"
-            href="{% url 'principal:formulario_create' %}?curso_id={{ course.id }}">Formulario de Aplicación</a>
+          <div class="mt-2">
+            <a class="btn btn-xs btn-success" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;"
+              href="{% url 'principal:formulario_create' %}?curso_id={{ course.id }}">Formulario de Aplicación</a>
+          </div>
           {% endif %}
           {% endif %}
         </div>

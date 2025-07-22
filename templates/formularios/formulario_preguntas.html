@@ -52,17 +52,19 @@
                     <form method="post">
                         {% csrf_token %}
                         {{ pregunta_formset.management_form }}
+                        
+                        <!-- No ocultamos la primera fila con CSS para evitar problemas con el envío del formulario -->
 
                         <div class="table-responsive">
                             <table class="table table-striped">
                                 <thead>
                                     <tr>
-                                        <th>Texto de la pregunta</th>
-                                        <th>Tipo</th>
-                                        <th>Requerida</th>
-                                        <th>Orden</th>
-                                        <th>Opciones</th>
-                                        <th>Eliminar</th>
+                                        <th style="width: 35%;">Texto de la pregunta</th>
+                                        <th style="width: 20%;">Tipo</th>
+                                        <th style="width: 10%;">Requerida</th>
+                                        <th style="width: 10%;">Orden</th>
+                                        <th style="width: 15%;">Opciones</th>
+                                        <th style="width: 10%;">Eliminar</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -77,14 +79,18 @@
                                         <td>{{ form.orden|as_crispy_field }}</td>
                                         <td>
                                             {% if form.instance.pk %}
+                                            {% if form.instance.tipo != 'escritura_libre' %}
                                             <a href="{% url 'principal:pregunta_opciones' form.instance.pk %}"
-                                                class="btn btn-sm btn-primary">
+                                                class="btn btn-sm btn-primary btn-agregar-respuestas">
                                                 Agregar respuestas
                                             </a>
                                             {% else %}
+                                            <span class="text-muted">No requiere opciones de respuestas</span>
+                                            {% endif %}
+                                            {% else %}
                                             <a href="#"
                                                 onclick="guardarYRedirigir(this, '{{ formulario.id }}', '{{ forloop.counter0 }}'); return false;"
-                                                class="btn btn-sm btn-primary">
+                                                class="btn btn-sm btn-primary btn-agregar-respuestas">
                                                 Agregar respuestas
                                             </a>
                                             {% endif %}
@@ -123,6 +129,18 @@
     document.addEventListener('DOMContentLoaded', function () {
         console.clear(); // Limpiar la consola para depuración
         console.log('DOM cargado, inicializando script...');
+
+        // Ocultar la primera fila al cargar la página
+        const formsetRows = document.querySelectorAll('.formset-row');
+        if (formsetRows.length > 0) {
+            // Solo ocultar si no hay preguntas guardadas (verificar si tiene ID)
+            const firstRow = formsetRows[0];
+            const idField = firstRow.querySelector('input[name$="-id"]');
+            if (!idField || !idField.value) {
+                firstRow.style.display = 'none';
+                console.log('Primera fila oculta al cargar la página');
+            }
+        }
 
         // Ocultar las etiquetas de los campos DELETE
         document.querySelectorAll('input[type="checkbox"][name$="-DELETE"]').forEach(function (checkbox) {
@@ -163,6 +181,162 @@
                     }
                 });
             });
+        }
+
+        // Función para actualizar la visibilidad del botón "Agregar respuestas" según el tipo de pregunta
+        function updateAgregarRespuestasButton(row) {
+            console.log('Actualizando botón para fila:', row);
+
+            const tipoSelect = row.querySelector('select[name$="-tipo"]');
+            if (!tipoSelect) {
+                console.log('No se encontró selector de tipo en la fila');
+                return;
+            }
+
+            console.log('Tipo seleccionado:', tipoSelect.value);
+
+            // Buscar la celda de opciones (5ta columna)
+            const opcionesCell = row.querySelector('td:nth-child(5)');
+            if (!opcionesCell) {
+                console.log('No se encontró celda de opciones');
+                return;
+            }
+
+            // Buscar cualquier botón de agregar respuestas en la celda
+            let agregarRespuestasBtn = opcionesCell.querySelector('.btn-agregar-respuestas');
+            if (!agregarRespuestasBtn) {
+                // Si no tiene la clase específica, buscar cualquier botón primario
+                agregarRespuestasBtn = opcionesCell.querySelector('a.btn-primary');
+
+                // Si se encuentra, añadirle la clase para futuras referencias
+                if (agregarRespuestasBtn) {
+                    agregarRespuestasBtn.classList.add('btn-agregar-respuestas');
+                }
+            }
+
+            if (!agregarRespuestasBtn) {
+                console.log('No se encontró botón de agregar respuestas');
+                return;
+            }
+
+            console.log('Botón encontrado:', agregarRespuestasBtn);
+
+            if (tipoSelect.value === 'escritura_libre') {
+                // Si es escritura libre, ocultar el botón y mostrar un mensaje
+                agregarRespuestasBtn.style.display = 'none';
+
+                // Crear un mensaje si no existe
+                let mensaje = opcionesCell.querySelector('.text-muted');
+                if (!mensaje) {
+                    mensaje = document.createElement('span');
+                    mensaje.className = 'text-muted';
+                    mensaje.textContent = 'No requiere opciones';
+                    opcionesCell.appendChild(mensaje);
+                } else {
+                    mensaje.style.display = 'inline';
+                }
+
+                console.log('Ocultando botón y mostrando mensaje');
+            } else {
+                // Si no es escritura libre, mostrar el botón y ocultar el mensaje
+                agregarRespuestasBtn.style.display = 'inline-block';
+
+                const mensaje = opcionesCell.querySelector('.text-muted');
+                if (mensaje) {
+                    mensaje.style.display = 'none';
+                }
+
+                console.log('Mostrando botón y ocultando mensaje');
+            }
+        }
+
+        // Función para inicializar los selectores de tipo
+        function initTipoSelectors() {
+            console.log('Inicializando selectores de tipo...');
+
+            // Procesar cada fila del formulario
+            document.querySelectorAll('.formset-row').forEach(function (row, index) {
+                console.log(`Procesando fila ${index}...`);
+
+                // Encontrar el selector de tipo en esta fila
+                const tipoSelect = row.querySelector('select[name$="-tipo"]');
+                if (!tipoSelect) {
+                    console.log(`No se encontró selector de tipo en la fila ${index}`);
+                    return;
+                }
+
+                // Eliminar event listeners existentes para evitar duplicados
+                const newSelect = tipoSelect.cloneNode(true);
+                tipoSelect.parentNode.replaceChild(newSelect, tipoSelect);
+
+                // Añadir nuevo event listener
+                newSelect.addEventListener('change', function () {
+                    console.log(`Cambio en selector de tipo de fila ${index}, nuevo valor: ${this.value}`);
+                    updateAgregarRespuestasButton(row);
+                });
+
+                // Asegurarse de que todos los botones en la fila tengan la clase correcta
+                const opcionesCell = row.querySelector('td:nth-child(5)');
+                if (opcionesCell) {
+                    const btnPrimary = opcionesCell.querySelector('a.btn-primary');
+                    if (btnPrimary && !btnPrimary.classList.contains('btn-agregar-respuestas')) {
+                        btnPrimary.classList.add('btn-agregar-respuestas');
+                        console.log(`Añadida clase btn-agregar-respuestas a botón en fila ${index}`);
+                    }
+                }
+
+                // Actualizar el estado inicial
+                console.log(`Actualizando estado inicial de fila ${index}, valor: ${newSelect.value}`);
+                updateAgregarRespuestasButton(row);
+            });
+
+            console.log('Inicialización de selectores completada');
+        }
+
+        // Inicializar los selectores de tipo al cargar la página
+        // Asegurarse de que el DOM esté completamente cargado
+        function initializeAll() {
+            console.log('Inicializando todos los componentes...');
+
+            // Primero inicializar los selectores de tipo
+            initTipoSelectors();
+
+            // Luego procesar manualmente cada fila para asegurarnos de que los botones se muestren/oculten correctamente
+            document.querySelectorAll('.formset-row').forEach(function (row, index) {
+                const tipoSelect = row.querySelector('select[name$="-tipo"]');
+                if (tipoSelect && tipoSelect.value === 'escritura_libre') {
+                    console.log(`Fila ${index} tiene tipo escritura_libre, ocultando botón...`);
+
+                    // Buscar el botón en esta fila
+                    const opcionesCell = row.querySelector('td:nth-child(5)');
+                    if (opcionesCell) {
+                        const btn = opcionesCell.querySelector('a.btn-primary');
+                        if (btn) {
+                            btn.style.display = 'none';
+
+                            // Crear mensaje si no existe
+                            if (!opcionesCell.querySelector('.text-muted')) {
+                                const mensaje = document.createElement('span');
+                                mensaje.className = 'text-muted';
+                                mensaje.textContent = 'No requiere opciones';
+                                opcionesCell.appendChild(mensaje);
+                            }
+                        }
+                    }
+                }
+            });
+
+            console.log('Inicialización completa');
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function () {
+                console.log('DOM cargado, inicializando componentes...');
+                setTimeout(initializeAll, 100);
+            });
+        } else {
+            console.log('DOM ya cargado, inicializando componentes...');
+            setTimeout(initializeAll, 100);
         }
 
         // Función global para guardar y redirigir
@@ -240,6 +414,36 @@
             const currentFormCount = parseInt(totalForms.value);
             console.log('Formularios actuales:', currentFormCount);
 
+            // Verificar si hay filas visibles
+            const visibleRows = Array.from(document.querySelectorAll('.formset-row')).filter(row => row.style.display !== 'none');
+            
+            if (visibleRows.length === 0) {
+                // Si no hay filas visibles, mostrar la primera fila oculta
+                const firstRow = document.querySelector('.formset-row:first-child');
+                if (firstRow) {
+                    // Mostrar la fila
+                    firstRow.style.display = '';
+                    console.log('Mostrando la primera fila oculta');
+                    
+                    // Limpiar los campos de la primera fila
+                    firstRow.querySelectorAll('input[type="text"], textarea').forEach(function(input) {
+                        input.value = '';
+                    });
+                    
+                    // Asegurarse de que el campo orden tenga un valor
+                    const ordenInput = firstRow.querySelector('input[name$="-orden"]');
+                    if (ordenInput) {
+                        ordenInput.value = '0';
+                    }
+                    
+                    // Permitir nuevas adiciones después de un breve retraso
+                    setTimeout(function () {
+                        isAddingQuestion = false;
+                    }, 500);
+                    return;
+                }
+            }
+
             // Clonar la última fila de pregunta
             const formsetRows = document.querySelectorAll('.formset-row');
             const lastRow = formsetRows[formsetRows.length - 1];
@@ -260,11 +464,30 @@
                         input.setAttribute('id', newId);
                     }
 
-                    // Limpiar el valor si no es un checkbox
-                    if (input.type !== 'checkbox') {
+                    // Limpiar el valor si no es un checkbox o el campo orden
+                    if (input.type !== 'checkbox' && !name.includes('-orden')) {
                         input.value = '';
-                    } else {
+                    } else if (input.type === 'checkbox') {
                         input.checked = false;
+                    }
+
+                    // Establecer un valor para el campo orden basado en el índice
+                    if (name && name.includes('-orden')) {
+                        input.value = currentFormCount;
+                        input.setAttribute('value', currentFormCount);
+                        input.style.width = '80px';
+                    }
+
+                    // Asegurarse de que el campo de texto tenga 3 líneas
+                    if (name && name.includes('-texto')) {
+                        if (input.tagName.toLowerCase() === 'textarea') {
+                            input.setAttribute('rows', '3');
+                        }
+                    }
+
+                    // Ajustar el ancho del selector de tipo
+                    if (name && name.includes('-tipo') && input.tagName.toLowerCase() === 'select') {
+                        input.style.width = '100%';
                     }
                 }
             });
@@ -284,7 +507,7 @@
                 // Usar un ID de formulario fijo que ya está disponible en la plantilla
                 const formularioId = "{{ formulario.id }}";
                 opcionesCell.innerHTML = `
-                    <a href="#" onclick="guardarYRedirigir(this, '${formularioId}', ${currentFormCount}); return false;" class="btn btn-sm btn-primary">
+                    <a href="#" onclick="guardarYRedirigir(this, '${formularioId}', ${currentFormCount}); return false;" class="btn btn-sm btn-primary btn-agregar-respuestas">
                         Agregar respuestas
                     </a>
                 `;
@@ -303,8 +526,31 @@
             totalForms.value = currentFormCount + 1;
             console.log('Pregunta agregada. Nuevo total de formularios:', totalForms.value);
 
-            // No necesitamos agregar eventos de clic a los nuevos botones "Agregar respuestas"
-            // porque ahora son enlaces con onclick inline
+            // Añadir event listener para el selector de tipo en la nueva fila
+            const newTipoSelect = newRow.querySelector('select[name$="-tipo"]');
+            if (newTipoSelect) {
+                console.log('Configurando nuevo selector de tipo para la fila añadida');
+
+                newTipoSelect.addEventListener('change', function () {
+                    console.log('Cambio en selector de tipo de nueva fila, nuevo valor:', this.value);
+                    const row = this.closest('.formset-row');
+                    updateAgregarRespuestasButton(row);
+                });
+
+                // Asegurarse de que el botón tenga la clase correcta
+                const opcionesCell = newRow.querySelector('td:nth-child(5)');
+                if (opcionesCell) {
+                    const btnPrimary = opcionesCell.querySelector('a.btn-primary');
+                    if (btnPrimary && !btnPrimary.classList.contains('btn-agregar-respuestas')) {
+                        btnPrimary.classList.add('btn-agregar-respuestas');
+                        console.log('Añadida clase btn-agregar-respuestas a botón en nueva fila');
+                    }
+                }
+
+                // Actualizar el estado inicial
+                console.log('Actualizando estado inicial de nueva fila, valor:', newTipoSelect.value);
+                updateAgregarRespuestasButton(newRow);
+            }
 
             // Permitir nuevas adiciones después de un breve retraso
             setTimeout(function () {

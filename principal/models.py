@@ -265,7 +265,7 @@ class OpcionRespuesta(models.Model):
     Modelo para almacenar las opciones de respuesta para cada pregunta.
     """
     pregunta = models.ForeignKey(PreguntaFormulario, on_delete=models.CASCADE, related_name='opciones', verbose_name='Pregunta')
-    texto = models.CharField(max_length=255, verbose_name='Texto de la opción')
+    texto = models.CharField(max_length=255, verbose_name='Texto de la opción', blank=True, default='')
     orden = models.PositiveIntegerField(default=0, verbose_name='Orden')
     
     def __str__(self):

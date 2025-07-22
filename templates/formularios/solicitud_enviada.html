@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block title %}Solicitud Enviada{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">Solicitud Enviada Correctamente</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-success">
+                        <p>Tu solicitud para el curso <strong>{{ curso.name }}</strong> ha sido enviada correctamente.</p>
+                        <p>El profesor revisará tu aplicación y te notificará cuando sea aprobada.</p>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <a href="{% url 'principal:cursos' %}" class="btn btn-primary">Volver a la lista de cursos</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Redireccionar automáticamente después de 5 segundos
+    setTimeout(function() {
+        // Forzar una recarga completa para evitar problemas de caché
+        window.location.href = "{% url 'principal:cursos' %}?t=" + new Date().getTime();
+    }, 5000);
+</script>
+{% endblock %}

@@ -27,16 +27,21 @@
         // Eliminar mensajes duplicados
         document.addEventListener('DOMContentLoaded', function() {
             const mensajes = document.querySelectorAll('.mensaje-alerta');
-            const mensajesTexto = new Set();
+            const mensajesTexto = new Map(); // Usamos Map para rastrear el primer mensaje de cada texto
             
+            // Primera pasada: recopilar todos los mensajes
+            mensajes.forEach(function(mensaje, index) {
+                const textoMensaje = mensaje.textContent.trim();
+                if (!mensajesTexto.has(textoMensaje)) {
+                    mensajesTexto.set(textoMensaje, mensaje);
+                }
+            });
+            
+            // Segunda pasada: eliminar duplicados
             mensajes.forEach(function(mensaje) {
-                const textoMensaje = mensaje.getAttribute('data-mensaje');
-                
-                if (mensajesTexto.has(textoMensaje)) {
-                    // Si ya existe un mensaje con este texto, eliminar el duplicado
+                const textoMensaje = mensaje.textContent.trim();
+                if (mensajesTexto.get(textoMensaje) !== mensaje) {
                     mensaje.remove();
-                } else {
-                    mensajesTexto.add(textoMensaje);
                 }
             });
         });

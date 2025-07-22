@@ -56,32 +56,37 @@
                 <div class="card-body">
                     <form method="post">
                         {% csrf_token %}
-                        {{ opcion_formset.management_form }}
+                        <input type="hidden" name="pregunta_id" value="{{ pregunta.id }}">
 
                         <div class="table-responsive">
                             <table class="table table-striped">
                                 <thead>
                                     <tr>
-                                        <th>Texto de la opción</th>
-                                        <th>Orden</th>
-                                        <th>Eliminar</th>
+                                        <th style="width: 60%;">Texto de la opción</th>
+                                        <th style="width: 20%;">Orden</th>
+                                        <th style="width: 20%;">Eliminar</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    {% for form in opcion_formset.forms %}
-                                    <tr class="formset-row">
+                                <tbody id="opciones-tbody">
+                                    {% for opcion in pregunta.opciones.all %}
+                                    <tr class="opcion-row" data-id="{{ opcion.id }}">
                                         <td>
-                                            {{ form.id }}
-                                            {{ form.texto|as_crispy_field }}
+                                            <input type="hidden" name="opcion_id_{{ forloop.counter0 }}" value="{{ opcion.id }}">
+                                            <div class="form-group">
+                                                <label for="texto_{{ forloop.counter0 }}">Texto de la opción</label>
+                                                <textarea name="texto_{{ forloop.counter0 }}" id="texto_{{ forloop.counter0 }}" rows="2" class="form-control" style="width: 100%; max-width: 400px;">{{ opcion.texto }}</textarea>
+                                            </div>
                                         </td>
-                                        <td>{{ form.orden|as_crispy_field }}</td>
+                                        <td>
+                                            <div class="form-group">
+                                                <label for="orden_{{ forloop.counter0 }}">Orden</label>
+                                                <input type="number" name="orden_{{ forloop.counter0 }}" id="orden_{{ forloop.counter0 }}" value="{{ opcion.orden }}" class="form-control" style="width: 80px;">
+                                            </div>
+                                        </td>
                                         <td>
                                             <div class="d-flex align-items-center">
-                                                {% if form.instance.pk %}
-                                                <div style="display: none;">{{ form.DELETE }}</div>
-                                                {% endif %}
-                                                <button type="button" class="btn btn-sm btn-danger eliminar-opcion ms-2"
-                                                    onclick="marcarParaEliminar(this)">
+                                                <input type="checkbox" name="eliminar_{{ forloop.counter0 }}" id="eliminar_{{ forloop.counter0 }}" style="display: none;">
+                                                <button type="button" class="btn btn-sm btn-danger eliminar-opcion ms-2" onclick="marcarParaEliminar(this)">
                                                     <i class="fas fa-trash"></i> Eliminar
                                                 </button>
                                             </div>
@@ -90,6 +95,7 @@
                                     {% endfor %}
                                 </tbody>
                             </table>
+                            <input type="hidden" name="total_opciones" id="total_opciones" value="{{ pregunta.opciones.count }}">
                         </div>
 
                         <div class="d-flex justify-content-between mt-3">
@@ -127,10 +133,50 @@
                 }
             });
 
+            // Inicializar los campos existentes para asegurarse de que los valores se establezcan correctamente
+            document.querySelectorAll('input[name*="-orden"]').forEach(function (input, index) {
+                // Solo procesar campos que no sean ocultos
+                if (input.type !== 'hidden') {
+                    // Asegurarse de que el valor se establezca como un atributo
+                    const currentValue = input.value || index;
+                    input.value = currentValue;
+                    input.setAttribute('value', currentValue);
+
+                    // Añadir eventos para mantener sincronizados los valores
+                    input.addEventListener('input', function () {
+                        const newValue = this.value || '0';
+                        this.setAttribute('value', newValue);
+                    });
+
+                    input.addEventListener('change', function () {
+                        const newValue = this.value || '0';
+                        this.setAttribute('value', newValue);
+                    });
+                }
+            });
+
+            // También inicializar los campos de texto (pueden ser textareas o inputs)
+            document.querySelectorAll('textarea[name*="-texto"], input[name*="-texto"]').forEach(function (field) {
+                console.log('Inicializando campo de texto:', field.id, 'valor actual:', field.value);
+
+                // Para inputs, asegurarse de que el valor se establezca como un atributo
+                if (field.tagName.toLowerCase() === 'input') {
+                    field.setAttribute('value', field.value);
+                }
+
+                // Añadir eventos para asegurarse de que el valor se guarde correctamente
+                field.addEventListener('input', function () {
+                    if (this.tagName.toLowerCase() === 'input') {
+                        this.setAttribute('value', this.value);
+                    }
+                    console.log('Texto actualizado en campo existente:', this.id, 'nuevo valor:', this.value);
+                });
+            });
+
             // Función para marcar una opción para eliminar
             window.marcarParaEliminar = function (button) {
-                const row = button.closest('.formset-row');
-                const deleteCheckbox = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+                const row = button.closest('.opcion-row');
+                const deleteCheckbox = row.querySelector('input[type="checkbox"][id^="eliminar_"]');
 
                 if (confirm('¿Estás seguro de que deseas eliminar esta opción de respuesta?')) {
                     if (deleteCheckbox) {
@@ -154,10 +200,10 @@
                         // Para opciones nuevas, eliminar la fila directamente
                         row.remove();
 
-                        // Actualizar el contador de formularios
-                        const totalForms = document.querySelector('[name$="TOTAL_FORMS"]');
-                        if (totalForms) {
-                            totalForms.value = parseInt(totalForms.value) - 1;
+                        // Actualizar el contador de opciones
+                        const totalOpcionesInput = document.getElementById('total_opciones');
+                        if (totalOpcionesInput) {
+                            totalOpcionesInput.value = parseInt(totalOpcionesInput.value) - 1;
                         }
                     }
                 }
@@ -187,37 +233,28 @@
                     console.log('Agregando nueva opción...');
 
                     try {
-                        // Obtener el número total de formularios actual
-                        const totalForms = document.querySelector('[name$="TOTAL_FORMS"]');
-                        if (!totalForms) {
-                            alert('Error: No se pudo encontrar el contador de formularios.');
+                        // Obtener el número total de opciones actual
+                        const totalOpcionesInput = document.getElementById('total_opciones');
+                        if (!totalOpcionesInput) {
+                            alert('Error: No se pudo encontrar el contador de opciones.');
                             return;
                         }
 
-                        const currentFormCount = parseInt(totalForms.value);
-                        console.log('Formularios actuales:', currentFormCount);
-
-                        // Determinar el prefijo del formset
-                        let formPrefix = 'form';
-                        const existingField = document.querySelector('[name^="form-"][name$="-texto"]') ||
-                            document.querySelector('[name^="opcion_formset-"][name$="-texto"]');
-                        if (existingField) {
-                            const name = existingField.getAttribute('name');
-                            formPrefix = name.split('-')[0];
-                        }
-                        console.log('Prefijo del formset:', formPrefix);
+                        const currentCount = parseInt(totalOpcionesInput.value);
+                        console.log('Opciones actuales:', currentCount);
 
                         // Crear una nueva fila
-                        const tbody = document.querySelector('tbody');
+                        const tbody = document.getElementById('opciones-tbody');
                         const newRow = document.createElement('tr');
-                        newRow.className = 'formset-row';
+                        newRow.className = 'opcion-row';
+                        newRow.dataset.id = 'new-' + currentCount;  // Marcar como nueva opción
 
                         // Crear la celda para el texto
                         const textoCell = document.createElement('td');
                         textoCell.innerHTML = `
                         <div class="form-group">
-                            <label for="id_${formPrefix}-${currentFormCount}-texto">Texto de la opción</label>
-                            <input type="text" name="${formPrefix}-${currentFormCount}-texto" class="textinput textInput form-control" id="id_${formPrefix}-${currentFormCount}-texto">
+                            <label for="texto_${currentCount}">Texto de la opción</label>
+                            <textarea name="texto_${currentCount}" id="texto_${currentCount}" rows="2" class="form-control" style="width: 100%; max-width: 400px;" placeholder="Escriba aquí el texto de la opción"></textarea>
                         </div>
                     `;
 
@@ -225,8 +262,8 @@
                         const ordenCell = document.createElement('td');
                         ordenCell.innerHTML = `
                         <div class="form-group">
-                            <label for="id_${formPrefix}-${currentFormCount}-orden">Orden</label>
-                            <input type="number" name="${formPrefix}-${currentFormCount}-orden" value="0" class="numberinput form-control" id="id_${formPrefix}-${currentFormCount}-orden">
+                            <label for="orden_${currentCount}">Orden</label>
+                            <input type="number" name="orden_${currentCount}" id="orden_${currentCount}" value="${currentCount}" class="form-control" style="width: 80px;">
                         </div>
                     `;
 
@@ -234,8 +271,8 @@
                         const deleteCell = document.createElement('td');
                         deleteCell.innerHTML = `
                         <div class="d-flex align-items-center">
-                            <button type="button" class="btn btn-sm btn-danger eliminar-opcion ms-2" 
-                                onclick="marcarParaEliminar(this)">
+                            <input type="checkbox" name="eliminar_${currentCount}" id="eliminar_${currentCount}" style="display: none;">
+                            <button type="button" class="btn btn-sm btn-danger eliminar-opcion ms-2" onclick="marcarParaEliminar(this)">
                                 <i class="fas fa-trash"></i> Eliminar
                             </button>
                         </div>
@@ -249,9 +286,42 @@
                         // Agregar la fila a la tabla
                         tbody.appendChild(newRow);
 
-                        // Incrementar el contador de formularios
-                        totalForms.value = parseInt(totalForms.value) + 1;
-                        console.log('Opción agregada. Nuevo total de formularios:', totalForms.value);
+                        // Incrementar el contador de opciones
+                        totalOpcionesInput.value = currentCount + 1;
+                        console.log('Opción agregada. Nuevo total de opciones:', totalOpcionesInput.value);
+
+                        // Asegurarse de que el nuevo campo de texto esté correctamente inicializado
+                        const newTextField = document.getElementById(`texto_${currentCount}`);
+                        
+                        if (newTextField) {
+                            // Añadir evento para manejar cambios
+                            newTextField.addEventListener('input', function () {
+                                console.log('Texto actualizado en textarea:', this.value);
+                            });
+
+                            // También añadir evento para cuando el campo pierde el foco
+                            newTextField.addEventListener('blur', function () {
+                                console.log('Campo perdió el foco, valor final:', this.value);
+                            });
+
+                            // Enfocar el nuevo campo para facilitar la entrada de datos
+                            setTimeout(() => {
+                                newTextField.focus();
+                            }, 100);
+                        }
+
+                        // Asegurarse de que el nuevo campo de orden esté correctamente inicializado
+                        const newOrderField = document.getElementById(`orden_${currentCount}`);
+                        
+                        if (newOrderField) {
+                            // Establecer un valor predeterminado
+                            newOrderField.value = currentCount;
+                            
+                            // Añadir un evento para asegurarse de que el valor se establezca correctamente
+                            newOrderField.addEventListener('input', function () {
+                                console.log('Orden actualizado:', this.value);
+                            });
+                        }
                     } catch (error) {
                         console.error('Error al agregar opción:', error);
                     } finally {

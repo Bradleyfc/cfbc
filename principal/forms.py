@@ -236,6 +236,12 @@ class PreguntaFormularioForm(forms.ModelForm):
     """
     Formulario para crear o editar una pregunta de un formulario.
     """
+    # Convertir el campo texto en un textarea con 3 líneas
+    texto = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 3}),
+        label='Texto de la pregunta'
+    )
+    
     class Meta:
         model = PreguntaFormulario
         fields = ['texto', 'tipo', 'requerida', 'orden']
@@ -244,6 +250,11 @@ class PreguntaFormularioForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_tag = True
+        
+        # Ajustar el ancho del selector de tipo y del campo orden
+        self.fields['tipo'].widget.attrs.update({'style': 'width: 100%;'})
+        self.fields['orden'].widget.attrs.update({'style': 'width: 80px;'})
+        
         self.helper.layout = Layout(
             Field('texto'),
             Field('tipo'),
@@ -259,6 +270,17 @@ class OpcionRespuestaForm(forms.ModelForm):
     """
     Formulario para crear o editar una opción de respuesta.
     """
+    # Convertir el campo texto en un textarea con 2 líneas y ancho reducido
+    texto = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'rows': 2,
+            'style': 'width: 100%; max-width: 400px;',
+            'placeholder': 'Escriba aquí el texto de la opción'
+        }),
+        label='Texto de la opción',
+        required=True  # Hacerlo requerido para asegurarnos de que se guarde el texto
+    )
+    
     class Meta:
         model = OpcionRespuesta
         fields = ['texto', 'orden']
@@ -267,6 +289,11 @@ class OpcionRespuestaForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_tag = True
+        
+        # Ajustar el ancho del campo orden y hacerlo no obligatorio
+        self.fields['orden'].widget.attrs.update({'style': 'width: 80px;'})
+        self.fields['orden'].required = False
+        
         self.helper.layout = Layout(
             Field('texto'),
             Field('orden'),
@@ -290,7 +317,7 @@ PreguntaFormularioFormSet = inlineformset_factory(
     FormularioAplicacion,
     PreguntaFormulario,
     form=PreguntaFormularioForm,
-    extra=1,
+    extra=1,  # Mantenemos extra=1 para que el botón "Agregar Pregunta" funcione correctamente
     can_delete=True,
     fields=['texto', 'tipo', 'requerida', 'orden']
 )
