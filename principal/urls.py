@@ -1,5 +1,9 @@
 from django.urls import path
 from . import views
+from .views_registro_respuestas import (
+    RegistroRespuestasGeneralView, RegistroRespuestasCursoView, 
+    RegistroRespuestasEstudianteView, exportar_respuestas_excel
+)
 
 app_name = 'principal'
 
@@ -66,4 +70,11 @@ urlpatterns = [
     path('password-reset/', views.password_reset_request, name='password_reset_request'),
     path('password-reset/verify/', views.password_reset_verify, name='password_reset_verify'),
     path('password-reset/confirm/', views.password_reset_confirm, name='password_reset_confirm'),
+    
+    # Rutas para registro de respuestas de formularios
+    path('registro-respuestas/', RegistroRespuestasGeneralView.as_view(), name='registro_respuestas_general'),
+    path('registro-respuestas/curso/<int:pk>/', RegistroRespuestasCursoView.as_view(), name='registro_respuestas_curso'),
+    path('registro-respuestas/estudiante/<int:pk>/', RegistroRespuestasEstudianteView.as_view(), name='registro_respuestas_estudiante'),
+    path('registro-respuestas/exportar-excel/', exportar_respuestas_excel, name='exportar_respuestas_excel'),
+    path('registro-respuestas/exportar-excel/<int:curso_id>/', exportar_respuestas_excel, name='exportar_respuestas_excel_curso'),
 ]
