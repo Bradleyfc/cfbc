@@ -97,8 +97,17 @@
               <h5><span class="badge bg-danger w-100">Aplicación Denegada</span></h5>
             {% elif course.is_enrolled %}
               <p class="fw-bold bg-light text-center">Ya estás inscrito</p>
-            {% elif course.status == 'I' %}
+            {% elif course.status == 'I' and course.formulario_aplicacion %}
               <a class="btn btn-sm btn-success" href="{% url 'principal:aplicar_curso' course.id %}">Aplicar al Curso</a>
+            {% elif course.status == 'I' %}
+              <!-- No mostrar nada si no hay formulario -->
+              <!-- <p class="text-muted small">
+                Estado: {{ course.status }} | 
+                Tiene formulario: {{ course.tiene_formulario|yesno:"Sí,No" }}
+                {% if course.formulario_aplicacion %}
+                  | ID Formulario: {{ course.formulario_aplicacion.id }}
+                {% endif %}
+              </p> -->
             {% endif %}
           {% endif %}
 

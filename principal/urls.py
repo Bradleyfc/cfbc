@@ -61,4 +61,9 @@ urlpatterns = [
     path('solicitudes/<int:pk>/', views.SolicitudInscripcionDetailView.as_view(), name='solicitud_detail'),
     path('solicitudes/<int:pk>/aprobar/', views.aprobar_solicitud, name='aprobar_solicitud'),
     path('solicitudes/<int:pk>/rechazar/', views.rechazar_solicitud, name='rechazar_solicitud'),
+    
+    # Rutas para recuperación de contraseña
+    path('password-reset/', views.password_reset_request, name='password_reset_request'),
+    path('password-reset/verify/', views.password_reset_verify, name='password_reset_verify'),
+    path('password-reset/confirm/', views.password_reset_confirm, name='password_reset_confirm'),
 ]

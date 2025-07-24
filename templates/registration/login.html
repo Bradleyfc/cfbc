@@ -24,7 +24,8 @@
           <div>
 
           <a href="{% url 'principal:home' %}" class="card-link">Inicio</a> 
-          <p>No tienes una cuenta? <a href="{% url 'principal:registro' %}" class="card-link">Registrarse</a></p>   
+          <p>No tienes una cuenta? <a href="{% url 'principal:registro' %}" class="card-link">Registrarse</a></p>
+          <p><a href="{% url 'principal:password_reset_request' %}" class="card-link">¿Olvidó su contraseña?</a></p>   
         </div>
 
           <button class="btn btn-sm btn-primary float-end" type="submit">Iniciar Sesion</button>

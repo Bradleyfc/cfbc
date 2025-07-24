@@ -49,9 +49,10 @@ class CustomUserCreationForm(UserCreationForm):
     grado = forms.ChoiceField(label='Grado Académico', choices=GRADO, required=True)
     OCUPACION = [
         ("ocupacion1", "Desocupado"),
-        ("ocupacion2", "Ama de Casa"),
-        ("ocupacion3", "Trabajador Estatal"),
-        ("ocupacion4", "Trabajador por Cuenta Propia"),
+        ("ocupacion2", "Estudiante"),
+        ("ocupacion3", "Ama de Casa"),
+        ("ocupacion4", "Trabajador Estatal"),
+        ("ocupacion5", "Trabajador por Cuenta Propia"),
     ]
     ocupacion = forms.ChoiceField(label='Ocupación', choices=OCUPACION, required=True)
     titulo = forms.CharField(label='Título', max_length=50, required=True)

@@ -486,6 +486,18 @@ class HomeView(BaseContextMixin, TemplateView):
             courses = Curso.objects.filter(curso_academico=curso_academico_activo)
         else:
             courses = Curso.objects.none()
+        
+        # Obtener todos los formularios de aplicación existentes
+        formularios = FormularioAplicacion.objects.all()
+        formularios_por_curso = {f.curso_id: f for f in formularios}
+        
+        # Asignar los formularios a los cursos
+        for curso in courses:
+            if curso.id in formularios_por_curso:
+                curso.formulario_aplicacion = formularios_por_curso[curso.id]
+            else:
+                curso.formulario_aplicacion = None
+        
         # Group courses into chunks of four for the carousel
         grouped_courses = [courses[i:i + 4] for i in range(0, len(courses), 4)]
         context['grouped_courses'] = grouped_courses
@@ -541,6 +553,8 @@ class HomeView(BaseContextMixin, TemplateView):
             # Calcular el conteo de inscripciones
             enrollment_count = Matriculas.objects.filter(course=item).count()
             item.enrollment_count = enrollment_count
+            
+            # Ya no necesitamos este código porque los formularios se cargan en get_context_data
 
         context['courses'] = courses
         return context
@@ -589,9 +603,10 @@ class ListadoCursosView(BaseContextMixin, ListView):
                     estado='rechazada'
                 ).values_list('curso_id', flat=True)
             )
-            
-            print(f"DEBUG: Cursos con solicitudes pendientes: {cursos_con_solicitudes_pendientes}")
-            print(f"DEBUG: Cursos con solicitudes rechazadas: {cursos_con_solicitudes_rechazadas}")
+        
+        # Obtener todos los formularios de aplicación existentes
+        formularios = FormularioAplicacion.objects.all()
+        formularios_por_curso = {f.curso_id: f for f in formularios}
         
         # Procesar cada curso
         for course in context['courses']:
@@ -607,11 +622,6 @@ class ListadoCursosView(BaseContextMixin, ListView):
                 
                 # Verificar si el estudiante tiene una solicitud rechazada para este curso
                 course.tiene_solicitud_rechazada = course.id in cursos_con_solicitudes_rechazadas
-                
-                if course.tiene_solicitud_pendiente:
-                    print(f"DEBUG: Curso {course.name} (ID: {course.id}) tiene solicitud pendiente")
-                if course.tiene_solicitud_rechazada:
-                    print(f"DEBUG: Curso {course.name} (ID: {course.id}) tiene solicitud rechazada")
             else:
                 course.is_enrolled = False
                 course.tiene_solicitud_pendiente = False
@@ -620,6 +630,12 @@ class ListadoCursosView(BaseContextMixin, ListView):
             # Calcular el conteo de inscripciones
             enrollment_count = Matriculas.objects.filter(course=course).count()
             course.enrollment_count = enrollment_count
+            
+            # Asignar el formulario de aplicación si existe
+            if course.id in formularios_por_curso:
+                course.formulario_aplicacion = formularios_por_curso[course.id]
+            else:
+                course.formulario_aplicacion = None
         
         return context
             
@@ -1116,6 +1132,17 @@ class CourseUpdateView(BaseContextMixin, UpdateView):
     form_class = CourseForm
     template_name = 'create_course.html'  # Reutilizamos el mismo template
     success_url = reverse_lazy('principal:cursos')
+
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        # Verificar si el curso tiene un formulario de aplicación
+        try:
+            formulario = FormularioAplicacion.objects.filter(curso=obj).first()
+            if formulario:
+                obj.formulario_aplicacion = formulario
+        except Exception:
+            pass
+        return obj
 
     @override
     def form_valid(self, form):
@@ -1634,9 +1661,19 @@ class FormularioAplicacionCreateView(LoginRequiredMixin, SecretariaRequiredMixin
     def form_valid(self, form):
         curso_id = self.request.POST.get('curso')
         if curso_id:
-            form.instance.curso = get_object_or_404(Curso, id=curso_id)
+            curso = get_object_or_404(Curso, id=curso_id)
+            form.instance.curso = curso
             response = super().form_valid(form)
-            # No añadimos mensaje aquí, lo indicaremos con un parámetro
+            
+            # Imprimir información de depuración
+            print(f"DEBUG: Formulario creado para curso {curso.name} (ID: {curso.id})")
+            print(f"DEBUG: ID del formulario: {self.object.id}")
+            print(f"DEBUG: Verificando relación: {FormularioAplicacion.objects.filter(curso=curso).exists()}")
+            
+            # Limpiar la caché de la sesión para forzar una recarga de los datos
+            if 'cursos_con_formularios' in self.request.session:
+                del self.request.session['cursos_con_formularios']
+            
             return response
         else:
             messages.error(self.request, 'Debe seleccionar un curso.')
@@ -1740,6 +1777,16 @@ class FormularioPreguntasView(LoginRequiredMixin, SecretariaRequiredMixin, Updat
             # Guardar las preguntas
             preguntas = pregunta_formset.save(commit=True)
             print(f"Preguntas guardadas: {preguntas}")
+            
+            # Asegurarse de que el curso tenga el atributo tiene_formulario
+            formulario = self.object
+            curso = formulario.curso
+            print(f"DEBUG: Formulario {formulario.id} asociado al curso {curso.name} (ID: {curso.id})")
+            print(f"DEBUG: Verificando relación después de guardar preguntas: {FormularioAplicacion.objects.filter(curso=curso).exists()}")
+            
+            # Limpiar la caché de la sesión para forzar una recarga de los datos
+            if 'cursos_con_formularios' in self.request.session:
+                del self.request.session['cursos_con_formularios']
             
             # Si se está redirigiendo a las opciones, buscar la última pregunta creada
             if self.request.POST.get('redirect_to_options') or self.request.POST.get('save_and_continue'):
@@ -1910,10 +1957,14 @@ def aplicar_curso(request, curso_id):
     
     # Verificar si el curso tiene un formulario de aplicación
     try:
-        formulario = curso.formulario_aplicacion
+        # Intentar obtener el formulario directamente
+        formulario = FormularioAplicacion.objects.get(curso_id=curso_id)
+        if not formulario:
+            messages.error(request, 'Este curso no tiene un formulario de aplicación disponible.')
+            return redirect('principal:cursos')
     except FormularioAplicacion.DoesNotExist:
-        # Si no tiene formulario, redirigir a la inscripción directa
-        return redirect('principal:inscribirse_curso', course_id=curso_id)
+        messages.error(request, 'Este curso no tiene un formulario de aplicación disponible.')
+        return redirect('principal:cursos')
     
     # Verificar si el estudiante ya ha aplicado a este curso
     solicitud_existente = SolicitudInscripcion.objects.filter(
@@ -2148,6 +2199,10 @@ def guardar_pregunta_y_redirigir(request, formulario_id):
         # Imprimir información de la pregunta guardada
         print(f"Pregunta guardada con ID: {pregunta.pk}")
         
+        # Limpiar la caché de la sesión para forzar una recarga de los datos
+        if 'cursos_con_formularios' in request.session:
+            del request.session['cursos_con_formularios']
+        
         # No mostramos mensaje aquí para evitar duplicación, ya que la vista FormularioPreguntasView ya muestra un mensaje
         
         # Usar una redirección con JavaScript
@@ -2182,10 +2237,112 @@ def eliminar_formulario(request, pk):
         return redirect('principal:cursos')
     
     formulario = get_object_or_404(FormularioAplicacion, pk=pk)
-    curso_id = formulario.curso.id  # Guardar el ID del curso antes de eliminar el formulario
+    curso = formulario.curso
+    curso_id = curso.id  # Guardar el ID del curso antes de eliminar el formulario
+    
+    # Imprimir información de depuración antes de eliminar
+    print(f"DEBUG: Eliminando formulario {pk} del curso {curso.name} (ID: {curso_id})")
+    print(f"DEBUG: Verificando relación antes de eliminar: {FormularioAplicacion.objects.filter(curso=curso).exists()}")
     
     # Eliminar el formulario
     formulario.delete()
     
+    # Verificar que se haya eliminado correctamente
+    print(f"DEBUG: Verificando relación después de eliminar: {FormularioAplicacion.objects.filter(curso=curso).exists()}")
+    
+    # Limpiar la caché de la sesión para forzar una recarga de los datos
+    if 'cursos_con_formularios' in request.session:
+        del request.session['cursos_con_formularios']
+    
     messages.success(request, 'El formulario de aplicación ha sido eliminado correctamente.')
     return redirect('principal:cursos')
+
+# Vistas para recuperación de contraseña
+import random
+from django.contrib.auth.hashers import make_password
+from django.contrib.auth.models import User
+
+def password_reset_request(request):
+    """
+    Vista para solicitar el restablecimiento de contraseña.
+    El usuario ingresa su correo electrónico y se le envía un código de verificación.
+    """
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        try:
+            user = User.objects.get(email=email)
+            # Generar código aleatorio de 4 dígitos
+            verification_code = str(random.randint(1000, 9999))
+            # Almacenar datos temporales en la sesión
+            request.session['reset_verification_code'] = verification_code
+            request.session['reset_user_id'] = user.id
+            
+            # Enviar email con el código de verificación
+            email_text = f'Para restablecer su contraseña en el Centro Fray Bartolome de las Casas, ingrese el siguiente código: {verification_code}'
+            try:
+                send_mail(
+                    'Código para Restablecer Contraseña - Centro Fray Bartolome de las Casas',
+                    email_text,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [email],
+                    fail_silently=False,
+                )
+                messages.success(request, 'Se ha enviado un código de verificación a su correo electrónico.')
+                return redirect('principal:password_reset_verify')
+            except Exception as e:
+                print(f"Error al enviar email: {str(e)}")
+                messages.error(request, 'Error al enviar el código de verificación. Por favor, intente nuevamente más tarde.')
+        except User.DoesNotExist:
+            messages.error(request, 'No existe una cuenta con ese correo electrónico.')
+    
+    return render(request, 'registration/password_reset_request.html')
+
+def password_reset_verify(request):
+    """
+    Vista para verificar el código enviado al correo electrónico.
+    """
+    if 'reset_verification_code' not in request.session or 'reset_user_id' not in request.session:
+        messages.error(request, 'La sesión ha expirado. Por favor, inicie el proceso nuevamente.')
+        return redirect('principal:password_reset_request')
+    
+    if request.method == 'POST':
+        code = request.POST.get('code')
+        if code == request.session.get('reset_verification_code'):
+            return redirect('principal:password_reset_confirm')
+        else:
+            messages.error(request, 'El código ingresado no es válido. Por favor, intente nuevamente.')
+    
+    return render(request, 'registration/password_reset_verify.html')
+
+def password_reset_confirm(request):
+    """
+    Vista para establecer la nueva contraseña después de verificar el código.
+    """
+    if 'reset_user_id' not in request.session:
+        messages.error(request, 'La sesión ha expirado. Por favor, inicie el proceso nuevamente.')
+        return redirect('principal:password_reset_request')
+    
+    if request.method == 'POST':
+        password1 = request.POST.get('password1')
+        password2 = request.POST.get('password2')
+        
+        if password1 != password2:
+            messages.error(request, 'Las contraseñas no coinciden. Por favor, inténtelo nuevamente.')
+            return render(request, 'registration/password_reset_confirm.html')
+        
+        try:
+            user = User.objects.get(id=request.session.get('reset_user_id'))
+            user.password = make_password(password1)
+            user.save()
+            
+            # Limpiar datos de sesión
+            del request.session['reset_verification_code']
+            del request.session['reset_user_id']
+            
+            messages.success(request, 'Su contraseña ha sido restablecida exitosamente. Ahora puede iniciar sesión con su nueva contraseña.')
+            return redirect('login')
+        except User.DoesNotExist:
+            messages.error(request, 'Ha ocurrido un error. Por favor, inicie el proceso nuevamente.')
+            return redirect('principal:password_reset_request')
+    
+    return render(request, 'registration/password_reset_confirm.html')

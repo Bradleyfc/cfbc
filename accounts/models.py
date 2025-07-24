@@ -31,9 +31,10 @@ class Registro(models.Model):
 
     OCUPACION =[
         ("ocupacion1", "Desocupado"),
-        ("ocupacion2", "Ama de Casa"),
-        ("ocupacion3", "Trabajador Estatal"),
-        ("ocupacion4", "Trabajador por Cuenta Propia"),
+        ("ocupacion2", "Estudiante"),
+        ("ocupacion3", "Ama de Casa"),
+        ("ocupacion4", "Trabajador Estatal"),
+        ("ocupacion5", "Trabajador por Cuenta Propia"),
     ]
     ocupacion = models.CharField(
         max_length=100, choices=OCUPACION, default="ocupacion1", 
