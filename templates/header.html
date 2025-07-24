@@ -39,6 +39,10 @@
         <li><a href="{% url 'principal:home' %}" class="nav-link px-2 text-white">Inicio</a></li>
         {% if group_name == 'Secretaría' %}
         <li><a href="{% url 'principal:cursos' %}" class="nav-link px-2 text-white">Administrar Cursos</a></li>
+        <li><a href="{% url 'principal:registro_respuestas_general' %}" class="nav-link px-2 text-white">Registro de Respuestas</a></li>
+        {% elif group_name == 'Profesores' %}
+        <li><a href="{% url 'principal:cursos' %}" class="nav-link px-2 text-white">Nuestros Cursos</a></li>
+        <li><a href="{% url 'principal:registro_respuestas_general' %}" class="nav-link px-2 text-white">Registro de Respuestas</a></li>
         {% else %}
         <li><a href="{% url 'principal:cursos' %}" class="nav-link px-2 text-white">Nuestros Cursos</a></li>
         {% endif %}

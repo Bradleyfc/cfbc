@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Respuestas - {{ solicitud.estudiante.get_full_name|default:solicitud.estudiante.username }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Encabezado -->
+            <div class="mb-4">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item">
+                            <a href="{% url 'principal:registro_respuestas_general' %}">Registro General</a>
+                        </li>
+                        <li class="breadcrumb-item">
+                            <a href="{% url 'principal:registro_respuestas_curso' solicitud.curso.pk %}">{{ solicitud.curso.name }}</a>
+                        </li>
+                        <li class="breadcrumb-item active">{{ solicitud.estudiante.get_full_name|default:solicitud.estudiante.username }}</li>
+                    </ol>
+                </nav>
+                <h2 class="mb-1">Respuestas Detalladas del Estudiante</h2>
+            </div>
+
+            <div class="row">
+                <!-- Información del estudiante -->
+                <div class="col-md-4">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-person"></i> Información del Estudiante
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% if registro_estudiante and registro_estudiante.image %}
+                                <div class="text-center mb-3">
+                                    <img src="{{ registro_estudiante.image.url }}" alt="Foto del estudiante" 
+                                         class="rounded-circle" style="width: 100px; height: 100px; object-fit: cover;">
+                                </div>
+                            {% endif %}
+                            
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Nombre:</strong></td>
+                                    <td>{{ solicitud.estudiante.get_full_name|default:solicitud.estudiante.username }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Email:</strong></td>
+                                    <td>{{ solicitud.estudiante.email }}</td>
+                                </tr>
+                                {% if registro_estudiante %}
+                                    <tr>
+                                        <td><strong>Carnet:</strong></td>
+                                        <td>{{ registro_estudiante.carnet|default:"No especificado" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Nacionalidad:</strong></td>
+                                        <td>{{ registro_estudiante.nacionalidad|default:"No especificada" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Sexo:</strong></td>
+                                        <td>{{ registro_estudiante.get_sexo_display }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Teléfono:</strong></td>
+                                        <td>{{ registro_estudiante.telephone|default:"No especificado" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Móvil:</strong></td>
+                                        <td>{{ registro_estudiante.movil|default:"No especificado" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Dirección:</strong></td>
+                                        <td>{{ registro_estudiante.address|default:"No especificada" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Municipio:</strong></td>
+                                        <td>{{ registro_estudiante.location|default:"No especificado" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Provincia:</strong></td>
+                                        <td>{{ registro_estudiante.provincia|default:"No especificada" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Grado Académico:</strong></td>
+                                        <td>{{ registro_estudiante.get_grado_display }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Ocupación:</strong></td>
+                                        <td>{{ registro_estudiante.get_ocupacion_display }}</td>
+                                    </tr>
+                                    {% if registro_estudiante.titulo %}
+                                        <tr>
+                                            <td><strong>Título:</strong></td>
+                                            <td>{{ registro_estudiante.titulo }}</td>
+                                        </tr>
+                                    {% endif %}
+                                {% endif %}
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Información de la solicitud -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-clipboard-data"></i> Información de la Solicitud
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Curso:</strong></td>
+                                    <td>{{ solicitud.curso.name }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Profesor:</strong></td>
+                                    <td>{{ solicitud.curso.teacher.get_full_name|default:solicitud.curso.teacher.username }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Estado:</strong></td>
+                                    <td>
+                                        <span class="badge badge-{{ solicitud.estado }}">
+                                            {{ solicitud.get_estado_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Fecha de Solicitud:</strong></td>
+                                    <td>{{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}</td>
+                                </tr>
+                                {% if solicitud.fecha_revision %}
+                                    <tr>
+                                        <td><strong>Fecha de Revisión:</strong></td>
+                                        <td>{{ solicitud.fecha_revision|date:"d/m/Y H:i" }}</td>
+                                    </tr>
+                                {% endif %}
+                                {% if solicitud.revisado_por %}
+                                    <tr>
+                                        <td><strong>Revisado por:</strong></td>
+                                        <td>{{ solicitud.revisado_por.get_full_name|default:solicitud.revisado_por.username }}</td>
+                                    </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Respuestas del formulario -->
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-question-circle"></i> Respuestas del Formulario de Aplicación
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% if respuestas %}
+                                {% for respuesta in respuestas %}
+                                    <div class="mb-4 p-3 border rounded">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <h6 class="text-primary mb-2">
+                                                    <i class="bi bi-question-circle"></i> Pregunta {{ forloop.counter }}
+                                                </h6>
+                                                <p class="mb-2"><strong>{{ respuesta.pregunta.texto }}</strong></p>
+                                                <small class="text-muted">
+                                                    Tipo: {{ respuesta.pregunta.get_tipo_display }}
+                                                    {% if respuesta.pregunta.requerida %}
+                                                        <span class="badge bg-warning text-dark">Requerida</span>
+                                                    {% endif %}
+                                                </small>
+                                            </div>
+                                            <div class="col-md-8">
+                                                <h6 class="text-success mb-2">
+                                                    <i class="bi bi-reply"></i> Respuesta
+                                                </h6>
+                                                <div class="bg-light p-3 rounded">
+                                                    {% if respuesta.opciones_seleccionadas.all %}
+                                                        {% if respuesta.pregunta.tipo == 'seleccion_multiple' %}
+                                                            {% for opcion in respuesta.opciones_seleccionadas.all %}
+                                                                <span class="badge bg-primary me-1 mb-1">{{ opcion.texto }}</span>
+                                                            {% endfor %}
+                                                        {% else %}
+                                                            <!-- Para preguntas de escritura libre -->
+                                                            {% for opcion in respuesta.opciones_seleccionadas.all %}
+                                                                <p class="mb-0">{{ opcion.texto }}</p>
+                                                            {% endfor %}
+                                                        {% endif %}
+                                                    {% else %}
+                                                        <span class="text-muted">Sin respuesta</span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="bi bi-question-circle text-muted mb-3" style="font-size: 3rem;"></i>
+                                    <h5 class="text-muted">No hay respuestas registradas</h5>
+                                    <p class="text-muted">Este estudiante no ha completado el formulario de aplicación.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+</div>
+
+<style>
+.badge-pendiente {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.badge-aprobada {
+    background-color: #28a745;
+    color: white;
+}
+
+.badge-rechazada {
+    background-color: #dc3545;
+    color: white;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.table td {
+    border-top: 1px solid #dee2e6;
+    padding: 0.5rem;
+}
+
+.table td:first-child {
+    width: 40%;
+    font-weight: 500;
+}
+
+.bg-light {
+    background-color: #f8f9fa !important;
+}
+
+.border {
+    border: 1px solid #dee2e6 !important;
+}
+</style>
+{% endblock %}

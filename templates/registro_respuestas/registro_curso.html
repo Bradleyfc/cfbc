@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Respuestas - {{ curso.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Encabezado -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item">
+                                <a href="{% url 'principal:registro_respuestas_general' %}">Registro General</a>
+                            </li>
+                            <li class="breadcrumb-item active">{{ curso.name }}</li>
+                        </ol>
+                    </nav>
+                    <h2 class="mb-1">Respuestas del Curso: {{ curso.name }}</h2>
+                    <p class="text-muted mb-0">Profesor: {{ curso.teacher.get_full_name|default:curso.teacher.username }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'principal:exportar_respuestas_excel_curso' curso.pk %}" class="btn btn-success">
+                        <i class="bi bi-file-earmark-excel"></i> Exportar Excel
+                    </a>
+                </div>
+            </div>
+
+            <!-- Estadísticas del curso -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body text-center">
+                            <h4 class="mb-0">{{ total_solicitudes_curso }}</h4>
+                            <p class="mb-0">Total Solicitudes</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body text-center">
+                            <h4 class="mb-0">{{ solicitudes_pendientes_curso }}</h4>
+                            <p class="mb-0">Pendientes</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <h4 class="mb-0">{{ solicitudes_aprobadas_curso }}</h4>
+                            <p class="mb-0">Aprobadas</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-danger text-white">
+                        <div class="card-body text-center">
+                            <h4 class="mb-0">{{ solicitudes_rechazadas_curso }}</h4>
+                            <p class="mb-0">Rechazadas</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtros -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-6">
+                            <label for="search" class="form-label">Buscar estudiante:</label>
+                            <input type="text" class="form-control" id="search" name="search" 
+                                   value="{{ request.GET.search }}" placeholder="Nombre o usuario del estudiante">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="estado" class="form-label">Estado de solicitud:</label>
+                            <select class="form-select" id="estado" name="estado">
+                                <option value="">Todos los estados</option>
+                                {% for value, label in estados_choices %}
+                                    <option value="{{ value }}" {% if request.GET.estado == value %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">Filtrar</button>
+                            <a href="{% url 'principal:registro_respuestas_curso' curso.pk %}" class="btn btn-outline-secondary">Limpiar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Lista de solicitudes -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Solicitudes y Respuestas de Estudiantes</h5>
+                </div>
+                <div class="card-body">
+                    {% if solicitudes %}
+                        {% for solicitud in solicitudes %}
+                            <div class="card mb-3 border-left-{{ solicitud.estado }}">
+                                <div class="card-header">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-6">
+                                            <h6 class="mb-0">
+                                                <i class="bi bi-person"></i>
+                                                {{ solicitud.estudiante.get_full_name|default:solicitud.estudiante.username }}
+                                            </h6>
+                                            <small class="text-muted">{{ solicitud.estudiante.email }}</small>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <span class="badge badge-{{ solicitud.estado }}">
+                                                {{ solicitud.get_estado_display }}
+                                            </span>
+                                        </div>
+                                        <div class="col-md-3 text-end">
+                                            <small class="text-muted">
+                                                {{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}
+                                            </small>
+                                            <br>
+                                            <a href="{% url 'principal:registro_respuestas_estudiante' solicitud.pk %}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i> Ver Detalle
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    {% if solicitud.respuestas.all %}
+                                        <div class="row">
+                                            {% for respuesta in solicitud.respuestas.all %}
+                                                <div class="col-md-6 mb-3">
+                                                    <div class="border-left-primary p-3 bg-light">
+                                                        <h6 class="text-primary mb-2">{{ respuesta.pregunta.texto }}</h6>
+                                                        <div class="text-dark">
+                                                            {% for opcion in respuesta.opciones_seleccionadas.all %}
+                                                                <span class="badge bg-secondary me-1">{{ opcion.texto }}</span>
+                                                            {% empty %}
+                                                                <span class="text-muted">Sin respuesta</span>
+                                                            {% endfor %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <p class="text-muted mb-0">No hay respuestas registradas para esta solicitud.</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-inbox text-muted mb-3" style="font-size: 3rem;"></i>
+                            <h5 class="text-muted">No hay solicitudes para este curso</h5>
+                            <p class="text-muted">Las solicitudes de estudiantes aparecerán aquí cuando se registren.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+</div>
+
+<style>
+.border-left-pendiente {
+    border-left: 4px solid #ffc107 !important;
+}
+
+.border-left-aprobada {
+    border-left: 4px solid #28a745 !important;
+}
+
+.border-left-rechazada {
+    border-left: 4px solid #dc3545 !important;
+}
+
+.badge-pendiente {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.badge-aprobada {
+    background-color: #28a745;
+    color: white;
+}
+
+.badge-rechazada {
+    background-color: #dc3545;
+    color: white;
+}
+
+.border-left-primary {
+    border-left: 3px solid #007bff;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.bg-light {
+    background-color: #f8f9fa !important;
+}
+</style>
+{% endblock %}

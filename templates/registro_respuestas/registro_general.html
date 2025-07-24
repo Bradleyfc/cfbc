@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Registro General de Respuestas{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Encabezado -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">Registro General de Respuestas</h2>
+            {% if curso_academico %}
+            <p class="text-muted mb-0">Curso Académico: {{ curso_academico.nombre }}</p>
+            {% endif %}
+        </div>
+        <div>
+            <a href="javascript:history.back()" class="btn btn-secondary me-2">
+                <i class="bi bi-arrow-left"></i> Volver
+            </a>
+            <a href="{% url 'principal:exportar_respuestas_excel' %}" class="btn btn-success">
+                <i class="bi bi-file-earmark-excel"></i> Exportar Excel
+            </a>
+        </div>
+    </div>
+
+    <!-- Estadísticas generales -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ total_solicitudes|default:0 }}</h4>
+                            <p class="mb-0">Total Solicitudes</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-clipboard-data" style="font-size: 2rem;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ solicitudes_pendientes|default:0 }}</h4>
+                            <p class="mb-0">Pendientes</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-clock" style="font-size: 2rem;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ solicitudes_aprobadas|default:0 }}</h4>
+                            <p class="mb-0">Aprobadas</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-check-circle" style="font-size: 2rem;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ solicitudes_rechazadas|default:0 }}</h4>
+                            <p class="mb-0">Rechazadas</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-x-circle" style="font-size: 2rem;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-6">
+                    <label for="search" class="form-label">Buscar curso o profesor:</label>
+                    <input type="text" class="form-control" id="search" name="search" value="{{ request.GET.search }}"
+                        placeholder="Nombre del curso o profesor">
+                </div>
+                <div class="col-md-4">
+                    <label for="estado" class="form-label">Estado de solicitudes:</label>
+                    <select class="form-select" id="estado" name="estado">
+                        <option value="">Todos los estados</option>
+                        {% for value, label in estados_choices %}
+                        <option value="{{ value }}">
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">Filtrar</button>
+                    <a href="{% url 'principal:registro_respuestas_general' %}"
+                        class="btn btn-outline-secondary">Limpiar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista de cursos -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Cursos con Formularios de Aplicación</h5>
+        </div>
+        <div class="card-body">
+            {% if cursos %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Curso</th>
+                            <th>Profesor</th>
+                            <th>Total Solicitudes</th>
+                            <th>Pendientes</th>
+                            <th>Aprobadas</th>
+                            <th>Rechazadas</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for curso in cursos %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% if curso.image %}
+                                    <img src="{{ curso.image.url }}" alt="{{ curso.name }}" class="rounded me-2"
+                                        style="width: 40px; height: 40px; object-fit: cover;">
+                                    {% endif %}
+                                    <div>
+                                        <strong>{{ curso.name }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ curso.get_status_display }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ curso.teacher.get_full_name|default:curso.teacher.username }}</td>
+                            <td>
+                                <span class="badge bg-primary">{{ curso.total_solicitudes }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-warning">{{ curso.solicitudes_pendientes }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-success">{{ curso.solicitudes_aprobadas }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-danger">{{ curso.solicitudes_rechazadas }}</span>
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'principal:registro_respuestas_curso' curso.pk %}"
+                                        class="btn btn-sm btn-outline-primary" title="Ver respuestas del curso">
+                                        <i class="bi bi-eye"></i> Ver
+                                    </a>
+                                    <a href="{% url 'principal:exportar_respuestas_excel_curso' curso.pk %}"
+                                        class="btn btn-sm btn-outline-success" title="Exportar a Excel">
+                                        <i class="bi bi-file-earmark-excel"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-clipboard-data text-muted mb-3" style="font-size: 3rem;"></i>
+                <h5 class="text-muted">No hay cursos con formularios de aplicación</h5>
+                <p class="text-muted">Los cursos aparecerán aquí cuando tengan formularios de aplicación configurados y
+                    solicitudes de estudiantes.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        border: 1px solid rgba(0, 0, 0, 0.125);
+    }
+
+    .table th {
+        border-top: none;
+        font-weight: 600;
+    }
+
+    .badge {
+        font-size: 0.75em;
+    }
+
+    .btn-group .btn {
+        border-radius: 0.25rem;
+        margin-right: 0.25rem;
+    }
+
+    .btn-group .btn:last-child {
+        margin-right: 0;
+    }
+</style>
+{% endblock %}
