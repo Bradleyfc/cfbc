@@ -233,8 +233,8 @@ class FormularioAplicacion(models.Model):
         return f"Formulario para {self.curso.name}"
     
     class Meta:
-        verbose_name = 'Formulario de Aplicación'
-        verbose_name_plural = 'Formularios de Aplicación'
+        verbose_name = '📋 Formulario de Aplicación'
+        verbose_name_plural = '📋 Formularios de Aplicación'
         ordering = ['-fecha_modificacion']
 
 class PreguntaFormulario(models.Model):
@@ -253,11 +253,12 @@ class PreguntaFormulario(models.Model):
     orden = models.PositiveIntegerField(default=0, verbose_name='Orden')
     
     def __str__(self):
-        return f"{self.texto} ({self.get_tipo_display()})"
+        curso_name = self.formulario.curso.name if self.formulario else "Sin curso"
+        return f"{self.texto[:50]}... - {curso_name} ({self.get_tipo_display()})"
     
     class Meta:
-        verbose_name = 'Pregunta de Formulario'
-        verbose_name_plural = 'Preguntas de Formulario'
+        verbose_name = '❓ Pregunta de Formulario'
+        verbose_name_plural = '❓ Preguntas de Formulario'
         ordering = ['orden']
 
 class OpcionRespuesta(models.Model):
@@ -269,11 +270,14 @@ class OpcionRespuesta(models.Model):
     orden = models.PositiveIntegerField(default=0, verbose_name='Orden')
     
     def __str__(self):
+        if self.pregunta and self.pregunta.formulario:
+            curso_name = self.pregunta.formulario.curso.name
+            return f"{self.texto} (Curso: {curso_name})"
         return self.texto
     
     class Meta:
-        verbose_name = 'Opción de Respuesta'
-        verbose_name_plural = 'Opciones de Respuesta'
+        verbose_name = '✅ Opción de Respuesta'
+        verbose_name_plural = '✅ Opciones de Respuesta'
         ordering = ['orden']
 
 class SolicitudInscripcion(models.Model):
@@ -298,8 +302,8 @@ class SolicitudInscripcion(models.Model):
         return f"Solicitud de {self.estudiante.get_full_name() or self.estudiante.username} para {self.curso.name}"
     
     class Meta:
-        verbose_name = 'Solicitud de Inscripción'
-        verbose_name_plural = 'Solicitudes de Inscripción'
+        verbose_name = '📝 Solicitud de Inscripción'
+        verbose_name_plural = '📝 Solicitudes de Inscripción'
         ordering = ['-fecha_solicitud']
         unique_together = [['estudiante', 'curso']]
     
@@ -347,6 +351,6 @@ class RespuestaEstudiante(models.Model):
         return f"Respuesta a {self.pregunta.texto} por {self.solicitud.estudiante.username}"
     
     class Meta:
-        verbose_name = 'Respuesta de Estudiante'
-        verbose_name_plural = 'Respuestas de Estudiantes'
+        verbose_name = '💬 Respuesta de Estudiante'
+        verbose_name_plural = '💬 Respuestas de Estudiantes'
         unique_together = [['solicitud', 'pregunta']]

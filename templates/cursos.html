@@ -88,27 +88,27 @@
 
           <!-- Boton de aplicar al curso o etiquetas de estado -->
           {% if group_name == 'Estudiantes' %}
-            <!-- Verificar el estado de la solicitud para este curso usando los template tags -->
-            {% tiene_solicitud_pendiente user.id course.id as tiene_solicitud_pendiente %}
-            {% tiene_solicitud_rechazada user.id course.id as tiene_solicitud_rechazada %}
-            {% if tiene_solicitud_pendiente %}
-              <h5><span class="badge bg-warning text-dark w-100">Pendiente a Aprobación</span></h5>
-            {% elif tiene_solicitud_rechazada %}
-              <h5><span class="badge bg-danger w-100">Aplicación Denegada</span></h5>
-            {% elif course.is_enrolled %}
-              <p class="fw-bold bg-light text-center">Ya estás inscrito</p>
-            {% elif course.status == 'I' and course.formulario_aplicacion %}
-              <a class="btn btn-sm btn-success" href="{% url 'principal:aplicar_curso' course.id %}">Aplicar al Curso</a>
-            {% elif course.status == 'I' %}
-              <!-- No mostrar nada si no hay formulario -->
-              <!-- <p class="text-muted small">
+          <!-- Verificar el estado de la solicitud para este curso usando los template tags -->
+          {% tiene_solicitud_pendiente user.id course.id as tiene_solicitud_pendiente %}
+          {% tiene_solicitud_rechazada user.id course.id as tiene_solicitud_rechazada %}
+          {% if tiene_solicitud_pendiente %}
+          <h5><span class="badge bg-warning text-dark w-100">Pendiente a Aprobación</span></h5>
+          {% elif tiene_solicitud_rechazada %}
+          <h5><span class="badge bg-danger w-100">Aplicación Denegada</span></h5>
+          {% elif course.is_enrolled %}
+          <p class="fw-bold bg-light text-center">Ya estás inscrito</p>
+          {% elif course.status == 'I' and course.formulario_aplicacion %}
+          <a class="btn btn-sm btn-success" href="{% url 'principal:aplicar_curso' course.id %}">Aplicar al Curso</a>
+          {% elif course.status == 'I' %}
+          <!-- No mostrar nada si no hay formulario -->
+          <!-- <p class="text-muted small">
                 Estado: {{ course.status }} | 
                 Tiene formulario: {{ course.tiene_formulario|yesno:"Sí,No" }}
                 {% if course.formulario_aplicacion %}
                   | ID Formulario: {{ course.formulario_aplicacion.id }}
                 {% endif %}
               </p> -->
-            {% endif %}
+          {% endif %}
           {% endif %}
 
 

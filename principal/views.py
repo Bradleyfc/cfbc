@@ -2135,6 +2135,35 @@ def aprobar_solicitud(request, pk):
     # Aprobar la solicitud
     matricula = solicitud.aprobar(request.user)
     
+    # Enviar correo de confirmación al estudiante
+    try:
+        nombre_estudiante = solicitud.estudiante.get_full_name() or solicitud.estudiante.username
+        nombre_curso = solicitud.curso.name
+        email_estudiante = solicitud.estudiante.email
+        
+        if email_estudiante:
+            asunto = f'¡Enhorabuena! Su aplicación al curso {nombre_curso} ha sido aprobada'
+            mensaje = f'''¡Enhorabuena! Su aplicación al curso "{nombre_curso}" ha sido aprobada.
+
+Ya puede acceder al curso y comenzar con las actividades académicas.
+
+Saludos cordiales,
+Centro Fray Bartolomé de las Casas'''
+            
+            send_mail(
+                asunto,
+                mensaje,
+                settings.DEFAULT_FROM_EMAIL,
+                [email_estudiante],
+                fail_silently=False,
+            )
+            print(f"Correo enviado exitosamente a {email_estudiante} para el curso {nombre_curso}")
+        else:
+            print(f"No se pudo enviar correo: el estudiante {nombre_estudiante} no tiene email registrado")
+    except Exception as e:
+        print(f"Error al enviar correo de aprobación: {str(e)}")
+        # No interrumpimos el proceso si falla el envío del correo
+    
     # Agregar un solo mensaje de éxito
     messages.success(request, f'La solicitud de {solicitud.estudiante.get_full_name() or solicitud.estudiante.username} ha sido aprobada.')
     
@@ -2158,6 +2187,37 @@ def rechazar_solicitud(request, pk):
     
     # Rechazar la solicitud
     solicitud.rechazar(request.user)
+    
+    # Enviar correo de notificación al estudiante
+    try:
+        nombre_estudiante = solicitud.estudiante.get_full_name() or solicitud.estudiante.username
+        nombre_curso = solicitud.curso.name
+        email_estudiante = solicitud.estudiante.email
+        
+        if email_estudiante:
+            asunto = f'Su aplicación al curso {nombre_curso} ha sido denegada'
+            mensaje = f'''Lo sentimos! Su aplicación al curso "{nombre_curso}" ha sido denegada.
+
+Le recomendamos revisar los requisitos del curso y considerar aplicar en futuras convocatorias.
+
+Si tiene alguna pregunta, no dude en contactarnos.
+
+Saludos cordiales,
+Centro Fray Bartolomé de las Casas'''
+            
+            send_mail(
+                asunto,
+                mensaje,
+                settings.DEFAULT_FROM_EMAIL,
+                [email_estudiante],
+                fail_silently=False,
+            )
+            print(f"Correo de denegación enviado exitosamente a {email_estudiante} para el curso {nombre_curso}")
+        else:
+            print(f"No se pudo enviar correo: el estudiante {nombre_estudiante} no tiene email registrado")
+    except Exception as e:
+        print(f"Error al enviar correo de denegación: {str(e)}")
+        # No interrumpimos el proceso si falla el envío del correo
     
     messages.success(request, f'La solicitud de {solicitud.estudiante.get_full_name() or solicitud.estudiante.username} ha sido rechazada.')
     return redirect('principal:solicitudes_list')
@@ -2334,6 +2394,38 @@ def password_reset_confirm(request):
             user = User.objects.get(id=request.session.get('reset_user_id'))
             user.password = make_password(password1)
             user.save()
+            
+            # Enviar correo de confirmación de cambio de contraseña
+            try:
+                nombre_usuario = user.get_full_name() or user.username
+                email_usuario = user.email
+                
+                if email_usuario:
+                    asunto = 'Su contraseña ha sido cambiada satisfactoriamente'
+                    mensaje = f'''Estimado/a {nombre_usuario},
+
+Su contraseña ha sido cambiada satisfactoriamente en el Centro Fray Bartolomé de las Casas.
+
+Si usted no realizó este cambio, por favor contacte inmediatamente con el administrador del sistema.
+
+Fecha y hora del cambio: {timezone.now().strftime('%d/%m/%Y a las %H:%M')}
+
+Saludos cordiales,
+Centro Fray Bartolomé de las Casas'''
+                    
+                    send_mail(
+                        asunto,
+                        mensaje,
+                        settings.DEFAULT_FROM_EMAIL,
+                        [email_usuario],
+                        fail_silently=False,
+                    )
+                    print(f"Correo de confirmación de cambio de contraseña enviado a {email_usuario}")
+                else:
+                    print(f"No se pudo enviar correo: el usuario {nombre_usuario} no tiene email registrado")
+            except Exception as e:
+                print(f"Error al enviar correo de confirmación de cambio de contraseña: {str(e)}")
+                # No interrumpimos el proceso si falla el envío del correo
             
             # Limpiar datos de sesión
             del request.session['reset_verification_code']
