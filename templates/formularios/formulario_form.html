@@ -1,69 +1,73 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
+{% load static %}
 
 {% block title %}{{ titulo }}{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="row mb-4">
-        <div class="col">
-            <h1>{{ titulo }}</h1>
-        </div>
-    </div>
-
-    {% if messages %}
-    <div class="row">
-        <div class="col">
-            {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-body">
-                    <form method="post">
-                        {% csrf_token %}
-                        {{ form|crispy }}
-
-                        {% if not object %}
-                        <div class="mb-3">
-                            <label for="curso" class="form-label">Curso</label>
-                            <select name="curso" id="curso" class="form-select" required>
-                                <option value="">Seleccione un curso</option>
-                                {% if curso_preseleccionado %}
-                                <option value="{{ curso_preseleccionado.id }}" selected>{{ curso_preseleccionado.name }}
-                                </option>
-                                {% else %}
-                                {% for curso in cursos %}
-                                <option value="{{ curso.id }}">{{ curso.name }}</option>
-                                {% endfor %}
-                                {% endif %}
-                            </select>
-                            <div class="form-text">Seleccione el curso para el que desea crear el formulario de
-                                aplicación.</div>
-                        </div>
-                        {% endif %}
-
-                        <div class="d-flex justify-content-between">
-                            <a href="{% url 'principal:formulario_list' %}" class="btn btn-secondary">Cancelar</a>
-                            {% if object %}
-                            <a href="{% url 'principal:eliminar_formulario' object.id %}" class="btn btn-danger"
-                                onclick="return confirm('¿Estás seguro de que deseas eliminar este formulario? Esta acción no se puede deshacer.')">Eliminar
-                                Formulario</a>
-                            {% endif %}
-                            <button type="submit" class="btn btn-primary">Guardar</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
+<div class="container">
+    <h3>{{ titulo|upper }}</h3>
 </div>
+<hr>
+<br>
+
+{% if messages %}
+<div class="container">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<form method="post">
+    {% csrf_token %}
+    
+    <div class="card mx-auto" style="width: 40rem;">
+        
+        <img src="{% static 'icono.jpg' %}" class="card-img-top" alt="logo del centro" style="max-width: 20%; height: auto; margin: 0 auto; display: block; padding-top: 5%;">
+        
+        <div class="card-body">
+            <h5 class="card-title text-center">Formulario de Aplicación</h5>
+            
+            {{ form|crispy }}
+
+            {% if not object %}
+            <div class="mb-3">
+                <label for="curso" class="form-label">Curso</label>
+                <select name="curso" id="curso" class="form-select" required>
+                    <option value="">Seleccione un curso</option>
+                    {% if curso_preseleccionado %}
+                    <option value="{{ curso_preseleccionado.id }}" selected>{{ curso_preseleccionado.name }}</option>
+                    {% else %}
+                    {% for curso in cursos %}
+                    <option value="{{ curso.id }}">{{ curso.name }}</option>
+                    {% endfor %}
+                    {% endif %}
+                </select>
+                <div class="form-text">Seleccione el curso para el que desea crear el formulario de aplicación.</div>
+            </div>
+            {% endif %}
+
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{% url 'principal:formulario_list' %}" class="btn btn-secondary">
+                  <i class="bi bi-x-circle"></i> Cancelar
+                </a>
+                {% if object %}
+                <a href="{% url 'principal:eliminar_formulario' object.id %}" class="btn btn-danger"
+                    onclick="return confirm('¿Estás seguro de que deseas eliminar este formulario? Esta acción no se puede deshacer.')">
+                    <i class="bi bi-trash"></i> Eliminar Formulario
+                </a>
+                {% endif %}
+                <button type="submit" class="btn btn-primary">
+                  <i class="bi bi-save"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<br>
 {% endblock %}

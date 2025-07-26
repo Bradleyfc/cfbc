@@ -27,9 +27,15 @@
                         </div>
                     {% endfor %}
                 </div>
-                <button type="button" id="add-nota-button" class="btn btn-info">Agregar Nota</button>
-                <button type="submit" class="btn btn-success">Guardar Calificación</button>
-                <a href="{% url 'principal:student_list_notas_by_course' course_id=matricula.course.id %}" class="btn btn-secondary">Cancelar</a>
+                <button type="button" id="add-nota-button" class="btn btn-info">
+                  <i class="bi bi-plus-circle"></i> Agregar Nota
+                </button>
+                <button type="submit" class="btn btn-success">
+                  <i class="bi bi-save"></i> Guardar Calificación
+                </button>
+                <a href="{% url 'principal:student_list_notas_by_course' course_id=matricula.course.id %}" class="btn btn-secondary">
+                  <i class="bi bi-x-circle"></i> Cancelar
+                </a>
             </form>
         </div>
     </div>

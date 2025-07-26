@@ -29,6 +29,7 @@ class CustomUserCreationForm(UserCreationForm):
     # Campos adicionales del modelo Registro
     nacionalidad = forms.CharField(label='Nacionalidad', max_length=150, required=True)
     carnet = forms.CharField(label='Carnet', max_length=11, required=True)
+    foto_carnet = forms.ImageField(label='Foto del Carnet', required=False, help_text='Suba una foto o documento del carnet')
     SEXO = [
         ('M', 'Masculino'),
         ('F', 'Femenino')
@@ -56,6 +57,7 @@ class CustomUserCreationForm(UserCreationForm):
     ]
     ocupacion = forms.ChoiceField(label='Ocupación', choices=OCUPACION, required=True)
     titulo = forms.CharField(label='Título', max_length=50, required=True)
+    foto_titulo = forms.ImageField(label='Foto del Título', required=False, help_text='Suba una foto o documento del título')
     
 
 
@@ -114,6 +116,10 @@ class CustomUserCreationForm(UserCreationForm):
                 # Verificamos si hay una imagen en el formulario
                 if 'image' in self.cleaned_data and self.cleaned_data['image']:
                     registro.image = self.cleaned_data['image']
+                
+                # Guardamos la foto del carnet si se proporciona
+                if 'foto_carnet' in self.cleaned_data and self.cleaned_data['foto_carnet']:
+                    registro.foto_carnet = self.cleaned_data['foto_carnet']
                     
                 registro.address = self.cleaned_data.get('address', '')
                 registro.location = self.cleaned_data.get('location', '')
@@ -123,6 +129,10 @@ class CustomUserCreationForm(UserCreationForm):
                 registro.grado = self.cleaned_data.get('grado', '')
                 registro.ocupacion = self.cleaned_data.get('ocupacion', '')
                 registro.titulo = self.cleaned_data.get('titulo', '')
+                
+                # Guardamos la foto del título si se proporciona
+                if 'foto_titulo' in self.cleaned_data and self.cleaned_data['foto_titulo']:
+                    registro.foto_titulo = self.cleaned_data['foto_titulo']
                 
                 # Guardamos el registro
                 registro.save()

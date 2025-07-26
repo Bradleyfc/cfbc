@@ -9,6 +9,7 @@ class Registro(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='registro', verbose_name='Usuario')
     nacionalidad = models.CharField(max_length=150, null=True, blank = True, verbose_name='Nacionalidad')
     carnet = models.CharField(max_length=11, null=True, blank = True, verbose_name='Carnet')
+    foto_carnet = models.ImageField(upload_to='documentos/carnets/', null=True, blank=True, verbose_name='Foto del Carnet')
     SEXO = [
         ('M', 'Masculino'),
         ('F', 'Femenino')
@@ -40,6 +41,7 @@ class Registro(models.Model):
         max_length=100, choices=OCUPACION, default="ocupacion1", 
     )
     titulo = models.CharField(max_length=150, null=True, blank = True, verbose_name='Título')
+    foto_titulo = models.ImageField(upload_to='documentos/titulos/', null=True, blank=True, verbose_name='Foto del Título')
    
 
     class Meta:

@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
+{% load static %}
 
 {% block title %}Opciones de Respuesta{% endblock %}
 
@@ -37,28 +38,29 @@
 {% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="row mb-4">
-        <div class="col">
-            <h1>Opciones de Respuesta</h1>
-            <h4>{{ pregunta.texto }}</h4>
-            <p class="text-muted">
+<div class="container">
+    <h3>OPCIONES DE RESPUESTA</h3>
+</div>
+<hr>
+<br>
+
+<form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="pregunta_id" value="{{ pregunta.id }}">
+    
+    <div class="card mx-auto" style="width: 50rem;">
+        
+        <img src="{% static 'icono.jpg' %}" class="card-img-top" alt="logo del centro" style="max-width: 20%; height: auto; margin: 0 auto; display: block; padding-top: 5%;">
+        
+        <div class="card-body">
+            <h5 class="card-title text-center">{{ pregunta.texto }}</h5>
+            <p class="text-center text-muted">
                 Formulario: {{ formulario.titulo }} -
                 Curso: {{ formulario.curso.name }} -
                 Tipo: {{ pregunta.get_tipo_display }}
             </p>
-        </div>
-    </div>
-
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-body">
-                    <form method="post">
-                        {% csrf_token %}
-                        <input type="hidden" name="pregunta_id" value="{{ pregunta.id }}">
-
-                        <div class="table-responsive">
+            
+            <div class="table-responsive">
                             <table class="table table-striped">
                                 <thead>
                                     <tr>
@@ -87,7 +89,7 @@
                                             <div class="d-flex align-items-center">
                                                 <input type="checkbox" name="eliminar_{{ forloop.counter0 }}" id="eliminar_{{ forloop.counter0 }}" style="display: none;">
                                                 <button type="button" class="btn btn-sm btn-danger eliminar-opcion ms-2" onclick="marcarParaEliminar(this)">
-                                                    <i class="fas fa-trash"></i> Eliminar
+                                                    <i class="bi bi-trash"></i> Eliminar
                                                 </button>
                                             </div>
                                         </td>
@@ -96,22 +98,24 @@
                                 </tbody>
                             </table>
                             <input type="hidden" name="total_opciones" id="total_opciones" value="{{ pregunta.opciones.count }}">
-                        </div>
+            </div>
 
-                        <div class="d-flex justify-content-between mt-3">
-                            <a href="{% url 'principal:formulario_preguntas' formulario.id %}"
-                                class="btn btn-secondary">Volver</a>
-                            <button type="button" class="btn btn-success" id="agregar-opcion">
-                                <i class="fas fa-plus"></i> Agregar Opciones
-                            </button>
-                            <button type="submit" class="btn btn-primary">Guardar Opciones</button>
-                        </div>
-                    </form>
-                </div>
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{% url 'principal:formulario_preguntas' formulario.id %}" class="btn btn-secondary">
+                  <i class="bi bi-arrow-left"></i> Volver
+                </a>
+                <button type="button" class="btn btn-success" id="agregar-opcion">
+                    <i class="bi bi-plus-circle"></i> Agregar Opciones
+                </button>
+                <button type="submit" class="btn btn-primary">
+                  <i class="bi bi-save"></i> Guardar Opciones
+                </button>
             </div>
         </div>
     </div>
-</div>
+</form>
+
+<br>
 
 {% block extra_js %}
 <script>
@@ -191,7 +195,7 @@
                         button.onclick = function () {
                             deleteCheckbox.checked = false;
                             row.style.opacity = '1';
-                            button.innerHTML = '<i class="fas fa-trash"></i> Eliminar';
+                            button.innerHTML = '<i class="bi bi-trash"></i> Eliminar';
                             button.classList.remove('btn-warning');
                             button.classList.add('btn-danger');
                             button.onclick = function () { marcarParaEliminar(button); };
@@ -273,7 +277,7 @@
                         <div class="d-flex align-items-center">
                             <input type="checkbox" name="eliminar_${currentCount}" id="eliminar_${currentCount}" style="display: none;">
                             <button type="button" class="btn btn-sm btn-danger eliminar-opcion ms-2" onclick="marcarParaEliminar(this)">
-                                <i class="fas fa-trash"></i> Eliminar
+                                <i class="bi bi-trash"></i> Eliminar
                             </button>
                         </div>
                     `;

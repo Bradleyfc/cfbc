@@ -39,7 +39,7 @@
 {% block content %}
 <div class="container mt-4">
     <div class="row mb-4">
-        <div class="col">
+        <div class="col text-center">
             <h1>Preguntas del Formulario</h1>
             <h4>{{ formulario.titulo }} - {{ formulario.curso.name }}</h4>
         </div>
@@ -82,7 +82,7 @@
                                             {% if form.instance.tipo != 'escritura_libre' %}
                                             <a href="{% url 'principal:pregunta_opciones' form.instance.pk %}"
                                                 class="btn btn-sm btn-primary btn-agregar-respuestas">
-                                                Agregar respuestas
+                                                <i class="bi bi-plus-circle"></i> Agregar respuestas
                                             </a>
                                             {% else %}
                                             <span class="text-muted">No requiere opciones de respuestas</span>
@@ -91,7 +91,7 @@
                                             <a href="#"
                                                 onclick="guardarYRedirigir(this, '{{ formulario.id }}', '{{ forloop.counter0 }}'); return false;"
                                                 class="btn btn-sm btn-primary btn-agregar-respuestas">
-                                                Agregar respuestas
+                                                <i class="bi bi-plus-circle"></i> Agregar respuestas
                                             </a>
                                             {% endif %}
                                         </td>
@@ -99,10 +99,14 @@
                                             {% if form.instance.pk %}
                                             <div style="display: none;">{{ form.DELETE }}</div>
                                             <button type="button"
-                                                class="btn btn-sm btn-danger eliminar-pregunta">Eliminar</button>
+                                                class="btn btn-sm btn-danger eliminar-pregunta">
+                                                <i class="bi bi-trash"></i> Eliminar
+                                            </button>
                                             {% else %}
                                             <button type="button"
-                                                class="btn btn-sm btn-danger eliminar-pregunta">Eliminar</button>
+                                                class="btn btn-sm btn-danger eliminar-pregunta">
+                                                <i class="bi bi-trash"></i> Eliminar
+                                            </button>
                                             {% endif %}
                                         </td>
                                     </tr>
@@ -112,10 +116,15 @@
                         </div>
 
                         <div class="d-flex justify-content-between mt-3">
-                            <a href="{% url 'principal:formulario_list' %}" class="btn btn-secondary">Formulario de
-                                Aplicación de Todos los Cursos</a>
-                            <button type="button" id="add-pregunta" class="btn btn-success">Agregar Pregunta</button>
-                            <button type="submit" class="btn btn-primary">Guardar Preguntas</button>
+                            <a href="{% url 'principal:formulario_list' %}" class="btn btn-secondary">
+                              <i class="bi bi-arrow-left"></i> Formulario de Aplicación de Todos los Cursos
+                            </a>
+                            <button type="button" id="add-pregunta" class="btn btn-success">
+                              <i class="bi bi-plus-circle"></i> Agregar Pregunta
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                              <i class="bi bi-save"></i> Guardar Preguntas
+                            </button>
                         </div>
                     </form>
                 </div>

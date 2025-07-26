@@ -8,9 +8,8 @@
     <h2 class="mb-4 text-center">Listado de Estudiantes Registrados</h2>
 
     <div class="d-flex justify-content-end mb-3">
-
         <a href="{% url 'principal:export_usuarios_excel' %}{% if request.GET.search %}?search={{ request.GET.search }}{% endif %}" class="btn btn-success ml-2" target="_blank">
-            <i class="fas fa-file-excel"></i> Exportar a Excel
+            <i class="bi bi-file-earmark-excel"></i> Exportar a Excel
         </a>
     </div>
 
@@ -22,10 +21,12 @@
             <form method="get" class="row g-3 align-items-end">
                 <div class="col-md-8">
                     <label for="search" class="form-label">Buscar:</label>
-                    <input type="text" name="search" id="search" class="form-control" placeholder="Nombre o apellido...">
+                    <input type="text" name="search" id="search" class="form-control" placeholder="Nombre o apellido..." value="{{ request.GET.search }}">
                 </div>
                 <div class="col-md-4">
-                    <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                    <button type="submit" class="btn btn-primary w-100">
+                      <i class="bi bi-funnel"></i> Filtrar
+                    </button>
                 </div>
             </form>
         </div>
@@ -41,14 +42,16 @@
                     <th>Email</th>
                     <th>Nacionalidad</th>
                     <th>Carnet ID</th>
+                    <th>Descargar Carnet</th>
                     <th>Sexo</th>
                     <th>Dirección</th>
                     <th>Municipio</th>
                     <th>Provincia</th>
-                    <th>Movil</th>
+                    <th>Móvil</th>
                     <th>Grado Académico</th>
                     <th>Ocupación</th>
                     <th>Título</th>
+                    <th>Descargar Título</th>
                     <th>Grupo</th>
                     <th>Fecha de Registro</th>
                 </tr>
@@ -56,15 +59,24 @@
             <tbody>
                 {% for registro in registros %}
                 <tr>
-                    
-                    <td><img src="{{ registro.image.url }}" alt="Imagen de perfil" width="50" height="50"></td>
-
+                    <td>
+                        <img src="{{ registro.image.url }}" alt="Imagen de perfil" width="50" height="50" class="rounded-circle">
+                    </td>
                     <td>{{ registro.user.first_name }}</td>
                     <td>{{ registro.user.last_name }}</td>
                     <td>{{ registro.user.email }}</td>
                     <td>{{ registro.nacionalidad }}</td>
                     <td>{{ registro.carnet }}</td>
-                    <td>{{ registro.sexo }}</td>
+                    <td>
+                        {% if registro.foto_carnet %}
+                            <a href="{{ registro.foto_carnet.url }}" class="btn btn-sm btn-outline-primary" download>
+                                <i class="bi bi-download"></i> Descargar
+                            </a>
+                        {% else %}
+                            <span class="text-muted">No disponible</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ registro.get_sexo_display }}</td>
                     <td>{{ registro.address }}</td>
                     <td>{{ registro.location }}</td>
                     <td>{{ registro.provincia }}</td>
@@ -72,13 +84,21 @@
                     <td>{{ registro.get_grado_display }}</td>
                     <td>{{ registro.get_ocupacion_display }}</td>
                     <td>{{ registro.titulo }}</td>
-                    
-                    <td>{{ registro.user.groups.first.name }}</td>
+                    <td>
+                        {% if registro.foto_titulo %}
+                            <a href="{{ registro.foto_titulo.url }}" class="btn btn-sm btn-outline-success" download>
+                                <i class="bi bi-download"></i> Descargar
+                            </a>
+                        {% else %}
+                            <span class="text-muted">No disponible</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ registro.user.groups.first.name|default:"Sin grupo" }}</td>
                     <td>{{ registro.user.date_joined|date:"d/m/Y" }}</td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="text-center">No hay usuarios registrados que coincidan con los filtros.</td>
+                    <td colspan="18" class="text-center">No hay usuarios registrados que coincidan con los filtros.</td>
                 </tr>
                 {% endfor %}
             </tbody>

@@ -24,13 +24,13 @@
 
          {% if course.status == 'P' or course.status == 'F' %}
          <a href="{% url 'principal:asistencias' course_id=course.id %}" class="btn btn-sm btn-warning float-end me-3">
-          Ver Asistencias
+          <i class="bi bi-calendar-check"></i> Ver Asistencias
          </a>
          
          
          
          <a href="{% url 'principal:student_list_notas_by_course' course_id=course.id %}" class="btn btn-sm btn-warning float-end me-3">
-          Ver Notas
+          <i class="bi bi-clipboard-data"></i> Ver Notas
          <span class="badge rounded-pill bg-light text-danger">{{enrollment_count}}</span>
          </a>
          {% endif %}
@@ -61,7 +61,7 @@
             <small class="text-muted">{{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}</small>
           </div>
           <a href="{% url 'principal:solicitud_detail' solicitud.id %}" class="btn btn-sm btn-primary">
-            Ver Solicitud
+            <i class="bi bi-eye"></i> Ver Solicitud
           </a>
         </div>
       </li>

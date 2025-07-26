@@ -41,11 +41,11 @@
                     </div>
                 </div>
                 <div class="col-12 text-end">
-                <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Aplicar Filtros</button>
-                <a href="{% url 'principal:matriculas' %}" class="btn btn-secondary"><i class="fas fa-sync-alt"></i> Limpiar Filtros</a>
-                <a href="{% url 'principal:profile' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Volver</a>
-                <a href="{% url 'principal:export_matriculas_pdf' %}{% if request.GET.curso_academico %}?curso_academico={{ request.GET.curso_academico }}{% endif %}{% if request.GET.curso %}&curso={{ request.GET.curso }}{% endif %}{% if request.GET.student %}&student={{ request.GET.student }}{% endif %}" class="btn btn-danger"><i class="fas fa-file-pdf"></i> Exportar a PDF</a>
-                <a href="{% url 'principal:export_matriculas_excel' %}{% if request.GET.curso_academico %}?curso_academico={{ request.GET.curso_academico }}{% endif %}{% if request.GET.curso %}&curso={{ request.GET.curso }}{% endif %}{% if request.GET.student %}&student={{ request.GET.student }}{% endif %}" class="btn btn-success"><i class="fas fa-file-excel"></i> Exportar a Excel</a>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-funnel"></i> Aplicar Filtros</button>
+                <a href="{% url 'principal:matriculas' %}" class="btn btn-secondary"><i class="bi bi-arrow-clockwise"></i> Limpiar Filtros</a>
+                <a href="{% url 'principal:profile' %}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
+                <a href="{% url 'principal:export_matriculas_pdf' %}{% if request.GET.curso_academico %}?curso_academico={{ request.GET.curso_academico }}{% endif %}{% if request.GET.curso %}&curso={{ request.GET.curso }}{% endif %}{% if request.GET.student %}&student={{ request.GET.student }}{% endif %}" class="btn btn-danger"><i class="bi bi-file-earmark-pdf"></i> Exportar a PDF</a>
+                <a href="{% url 'principal:export_matriculas_excel' %}{% if request.GET.curso_academico %}?curso_academico={{ request.GET.curso_academico }}{% endif %}{% if request.GET.curso %}&curso={{ request.GET.curso }}{% endif %}{% if request.GET.student %}&student={{ request.GET.student }}{% endif %}" class="btn btn-success"><i class="bi bi-file-earmark-excel"></i> Exportar a Excel</a>
             </div>
             </form>
         </div>

@@ -1,64 +1,79 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Aplicar al Curso{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="row mb-4">
-        <div class="col">
-            <h1>Aplicar al Curso</h1>
-            <h4>{{ curso.name }}</h4>
-            <p>{{ curso.description }}</p>
-        </div>
-    </div>
+<div class="container text-center">
+    <h3>APLICAR AL CURSO</h3>
+</div>
+<hr>
+<br>
 
-    {% if messages %}
-    <div class="row">
-        <div class="col">
-            {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+{% if messages %}
+<div class="container">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="card mx-auto" style="width: 40rem;">
+
+        <img src="{% static 'icono.jpg' %}" class="card-img-top" alt="logo del centro"
+            style="max-width: 20%; height: auto; margin: 0 auto; display: block; padding-top: 5%;">
+
+        <div class="card-body">
+            <h5 class="card-title text-center">{{ curso.name }}</h5>
+            <p class="text-center text-muted">{{ curso.description }}</p>
+
+            <h6 class="text-center mb-3">{{ formulario.titulo }}</h6>
+            {% if formulario.descripcion %}
+            <p class="text-center text-muted mb-4">{{ formulario.descripcion }}</p>
+            {% endif %}
+            {% for pregunta, form in formularios_preguntas %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h6 class="card-title">{{ pregunta.texto }}{% if pregunta.requerida %} <span
+                            class="text-danger">*</span>{% endif %}</h6>
+
+                    {% for field in form %}
+                    <div class="mt-2">
+                        {{ field }}
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
             {% endfor %}
-        </div>
-    </div>
-    {% endif %}
 
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">
-                    <h5>{{ formulario.titulo }}</h5>
-                    {% if formulario.descripcion %}
-                    <p class="text-muted mb-0">{{ formulario.descripcion }}</p>
-                    {% endif %}
-                </div>
-                <div class="card-body">
-                    <form method="post">
-                        {% csrf_token %}
-                        
-                        {% for pregunta, form in formularios_preguntas %}
-                        <div class="mb-4">
-                            <h5>{{ pregunta.texto }}{% if pregunta.requerida %} <span class="text-danger">*</span>{% endif %}</h5>
-                            
-                            {% for field in form %}
-                            <div class="mt-2">
-                                {{ field }}
-                            </div>
-                            {% endfor %}
-                        </div>
-                        <hr>
-                        {% endfor %}
+            <div class="text-center mt-4 mb-3">
+                <p class="text-muted">
+                    Al seleccionar Enviar Solicitud a continuación, acepto
+                    <a href="#" class="text-decoration-none">Reglamento del Curso</a>.
+                </p>
+            </div>
 
-                        <div class="d-flex justify-content-between mt-3">
-                            <a href="{% url 'principal:cursos' %}" class="btn btn-secondary">Cancelar</a>
-                            <button type="submit" class="btn btn-primary">Enviar Solicitud</button>
-                        </div>
-                    </form>
-                </div>
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{% url 'principal:cursos' %}" class="btn btn-secondary">
+                  <i class="bi bi-x-circle"></i> Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary">
+                  <i class="bi bi-send"></i> Enviar Solicitud
+                </button>
             </div>
         </div>
     </div>
+</form>
+
+<div class="text-center mt-4">
+    <p class="text-muted">Centro Fray Bartolomé de las Casas © 1998-2025</p>
 </div>
+
+<br>
 {% endblock %}

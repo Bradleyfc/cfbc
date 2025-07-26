@@ -10,7 +10,9 @@
             </div>
 
             <div class="col-md-2">
-                <button type="submit" class="btn btn-primary w-100">Buscar/Filtrar</button>
+                <button type="submit" class="btn btn-primary w-100">
+                  <i class="bi bi-search"></i> Buscar/Filtrar
+                </button>
             </div>
         </div>
     </form>
@@ -43,7 +45,9 @@
                 {% endfor %}
                 <td><strong>{{ data.average|default:"N/A" }}</strong></td>
                 <td>
-                    <a href="{% url 'principal:add_nota' matricula_id=data.matricula_id %}" class="btn btn-sm btn-primary">Agregar/Editar Nota</a>
+                    <a href="{% url 'principal:add_nota' matricula_id=data.matricula_id %}" class="btn btn-sm btn-primary">
+                      <i class="bi bi-plus-circle"></i> Agregar/Editar Nota
+                    </a>
                     <!-- <a href="{% url 'principal:historico_alumno' student_id=data.student_id %}" class="btn btn-sm btn-info">Histórico</a> -->
                 </td>
             </tr>

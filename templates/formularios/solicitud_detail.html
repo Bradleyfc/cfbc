@@ -57,13 +57,15 @@
                     {% endfor %}
 
                     <div class="d-flex justify-content-between mt-3">
-                        <a href="{% url 'principal:solicitudes_list' %}" class="btn btn-secondary">Volver</a>
+                        <a href="{% url 'principal:solicitudes_list' %}" class="btn btn-secondary">
+                          <i class="bi bi-arrow-left"></i> Volver
+                        </a>
                         <div>
                             <a href="{% url 'principal:rechazar_solicitud' solicitud.id %}" class="btn btn-danger me-2">
-                                <i class="fas fa-times"></i> Denegar
+                                <i class="bi bi-x-circle"></i> Denegar
                             </a>
                             <a href="{% url 'principal:aprobar_solicitud' solicitud.id %}" class="btn btn-success">
-                                <i class="fas fa-check"></i> Aceptar
+                                <i class="bi bi-check-circle"></i> Aceptar
                             </a>
                         </div>
                     </div>

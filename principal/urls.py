@@ -9,6 +9,7 @@ app_name = 'principal'
 
 urlpatterns = [
     path('usuarios-registrados/', views.UsuariosRegistradosView.as_view(), name='usuarios_registrados'),
+    path('test-usuarios/', views.UsuariosRegistradosView.as_view(), name='test_usuarios'),
     path('admin/principal/cursoacademico/<int:pk>/detail/', views.CursoAcademicoDetailView.as_view(), name='principal_cursoacademico_detail'),
     path('', views.HomeView.as_view(), name='home'),
     path('listado_cursos/', views.ListadoCursosView.as_view(), name='listado_cursos'),

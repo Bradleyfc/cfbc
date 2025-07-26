@@ -7,6 +7,26 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
     <title>CFBC</title>
+    
+    <style>
+        /* Mapear los tags de mensajes de Django a las clases de Bootstrap */
+        .alert-error {
+            color: #842029;
+            background-color: #f8d7da;
+            border-color: #f5c2c7;
+        }
+        
+        .alert-error .btn-close {
+            filter: invert(1) grayscale(100%) brightness(30%);
+        }
+        
+        /* Asegurar que los mensajes de éxito sean verdes */
+        .alert-success {
+            color: #0f5132;
+            background-color: #d1e7dd;
+            border-color: #badbcc;
+        }
+    </style>
 
 
 </head>
@@ -24,13 +44,19 @@
         {% endfor %}
     </div>
     <script>
-        // Eliminar mensajes duplicados
+        // Eliminar mensajes duplicados y mapear clases de Bootstrap
         document.addEventListener('DOMContentLoaded', function() {
             const mensajes = document.querySelectorAll('.mensaje-alerta');
             const mensajesTexto = new Map(); // Usamos Map para rastrear el primer mensaje de cada texto
             
-            // Primera pasada: recopilar todos los mensajes
+            // Primera pasada: recopilar todos los mensajes y mapear clases
             mensajes.forEach(function(mensaje, index) {
+                // Mapear tags de Django a clases de Bootstrap
+                if (mensaje.classList.contains('alert-error')) {
+                    mensaje.classList.remove('alert-error');
+                    mensaje.classList.add('alert-danger');
+                }
+                
                 const textoMensaje = mensaje.textContent.trim();
                 if (!mensajesTexto.has(textoMensaje)) {
                     mensajesTexto.set(textoMensaje, mensaje);

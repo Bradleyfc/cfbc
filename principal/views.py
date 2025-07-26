@@ -292,9 +292,9 @@ def generate_excel(context_dict={}):
         ws_usuarios = wb.create_sheet(title="Usuarios Registrados")
         # Encabezados
         headers = [
-            "Nombre", "Apellidos", "Email", "Nacionalidad", "Carnet ID", "Sexo",
+            "Nombre", "Apellidos", "Email", "Nacionalidad", "Carnet ID", "Carnet Disponible", "Sexo",
             "Dirección", "Municipio", "Provincia", "Movil", "Grado Académico",
-            "Ocupación", "Título", "Grupo", "Fecha de Registro"
+            "Ocupación", "Título", "Título Disponible", "Grupo", "Fecha de Registro"
         ]
         for col_num, header in enumerate(headers, 1):
             cell = ws_usuarios.cell(row=1, column=col_num, value=header)
@@ -310,16 +310,18 @@ def generate_excel(context_dict={}):
             ws_usuarios.cell(row=row_num, column=3, value=registro.user.email)
             ws_usuarios.cell(row=row_num, column=4, value=registro.nacionalidad)
             ws_usuarios.cell(row=row_num, column=5, value=registro.carnet)
-            ws_usuarios.cell(row=row_num, column=6, value=registro.sexo)
-            ws_usuarios.cell(row=row_num, column=7, value=registro.address)
-            ws_usuarios.cell(row=row_num, column=8, value=registro.location)
-            ws_usuarios.cell(row=row_num, column=9, value=registro.provincia)
-            ws_usuarios.cell(row=row_num, column=10, value=registro.movil)
-            ws_usuarios.cell(row=row_num, column=11, value=registro.get_grado_display())
-            ws_usuarios.cell(row=row_num, column=12, value=registro.get_ocupacion_display())
-            ws_usuarios.cell(row=row_num, column=13, value=registro.titulo)
-            ws_usuarios.cell(row=row_num, column=14, value=registro.user.groups.first().name if registro.user.groups.first() else '')
-            ws_usuarios.cell(row=row_num, column=15, value=registro.user.date_joined.strftime("%d/%m/%Y"))
+            ws_usuarios.cell(row=row_num, column=6, value="Sí" if registro.foto_carnet else "No")
+            ws_usuarios.cell(row=row_num, column=7, value=registro.sexo)
+            ws_usuarios.cell(row=row_num, column=8, value=registro.address)
+            ws_usuarios.cell(row=row_num, column=9, value=registro.location)
+            ws_usuarios.cell(row=row_num, column=10, value=registro.provincia)
+            ws_usuarios.cell(row=row_num, column=11, value=registro.movil)
+            ws_usuarios.cell(row=row_num, column=12, value=registro.get_grado_display())
+            ws_usuarios.cell(row=row_num, column=13, value=registro.get_ocupacion_display())
+            ws_usuarios.cell(row=row_num, column=14, value=registro.titulo)
+            ws_usuarios.cell(row=row_num, column=15, value="Sí" if registro.foto_titulo else "No")
+            ws_usuarios.cell(row=row_num, column=16, value=registro.user.groups.first().name if registro.user.groups.first() else '')
+            ws_usuarios.cell(row=row_num, column=17, value=registro.user.date_joined.strftime("%d/%m/%Y"))
             
             for col_num in range(1, len(headers) + 1):
                 ws_usuarios.cell(row=row_num, column=col_num).border = border
@@ -683,8 +685,37 @@ def registro(request):
             verification_code = str(random.randint(1000, 9999))
             # Almacenar datos temporales en la sesión
             request.session['verification_code'] = verification_code
-            request.session['user_form_data'] = user_creation_form.cleaned_data
-            request.session['user_files'] = request.FILES
+            
+            # Convertir cleaned_data a un formato serializable
+            form_data = {}
+            for key, value in user_creation_form.cleaned_data.items():
+                if hasattr(value, 'read'):  # Es un archivo
+                    # No almacenar archivos en la sesión
+                    continue
+                else:
+                    form_data[key] = value
+            
+            request.session['user_form_data'] = form_data
+            
+            # Almacenar archivos temporalmente en el sistema de archivos
+            import tempfile
+            import os
+            temp_files = {}
+            for key, file in request.FILES.items():
+                if file:
+                    # Crear archivo temporal
+                    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=f'_{file.name}')
+                    for chunk in file.chunks():
+                        temp_file.write(chunk)
+                    temp_file.close()
+                    temp_files[key] = {
+                        'path': temp_file.name,
+                        'name': file.name,
+                        'content_type': file.content_type,
+                        'size': file.size
+                    }
+            
+            request.session['temp_files'] = temp_files
 
             # Enviar email
             email_text = 'Bienvenido al Centro Fray Bartolome de las Casas, para completar su registro ingrese el siguiente codigo : ' + verification_code
@@ -726,14 +757,37 @@ def verify_email(request):
         code = request.POST.get('code')
         if code == request.session.get('verification_code'):
             user_form_data = request.session.get('user_form_data')
-            user_files = request.session.get('user_files')
-            user_creation_form = CustomUserCreationForm(data=user_form_data, files=user_files)
+            temp_files_data = request.session.get('temp_files', {})
+            
+            # Recrear archivos desde archivos temporales
+            from django.core.files.uploadedfile import SimpleUploadedFile
+            import os
+            
+            files_dict = {}
+            for key, file_info in temp_files_data.items():
+                if os.path.exists(file_info['path']):
+                    with open(file_info['path'], 'rb') as f:
+                        files_dict[key] = SimpleUploadedFile(
+                            file_info['name'],
+                            f.read(),
+                            content_type=file_info['content_type']
+                        )
+            
+            user_creation_form = CustomUserCreationForm(data=user_form_data, files=files_dict)
             if user_creation_form.is_valid():
                 user = user_creation_form.save(commit=True)
                 messages.success(request, f"Usuario {user.username} creado correctamente")
+                
+                # Limpiar archivos temporales
+                for file_info in temp_files_data.values():
+                    if os.path.exists(file_info['path']):
+                        os.unlink(file_info['path'])
+                
+                # Limpiar sesión
                 del request.session['verification_code']
                 del request.session['user_form_data']
-                del request.session['user_files']
+                if 'temp_files' in request.session:
+                    del request.session['temp_files']
 
                 # Enviar correo de confirmación de registro
                 confirmation_subject = 'Registro Exitoso - Centro Fray Bartolome de las Casas'
@@ -752,6 +806,10 @@ def verify_email(request):
 
                 return redirect('login')
             else:
+                # Limpiar archivos temporales en caso de error
+                for file_info in temp_files_data.values():
+                    if os.path.exists(file_info['path']):
+                        os.unlink(file_info['path'])
                 error_message = 'Error al crear el usuario. Por favor, intente nuevamente.'
         else:
             error_message = 'Código incorrecto. Por favor, intente nuevamente.'
@@ -805,9 +863,39 @@ class ProfileView(BaseContextMixin, TemplateView):
             curso_academico_activo = CursoAcademico.objects.filter(activo=True).first()
             if curso_academico_activo:
                 enrolled_courses = Curso.objects.filter(matriculas__student=user, curso_academico=curso_academico_activo)
+                
+                # Separar cursos por estado de solicitud
+                approved_courses = []
+                pending_courses = []
+                
+                # Para cada curso inscrito, obtener información adicional sobre solicitudes
+                for course in enrolled_courses:
+                    # Verificar si hay una solicitud de inscripción para este curso
+                    try:
+                        solicitud = SolicitudInscripcion.objects.get(
+                            estudiante=user,
+                            curso=course
+                        )
+                        course.solicitud_estado = solicitud.estado
+                        course.fecha_revision = solicitud.fecha_revision
+                        course.revisado_por = solicitud.revisado_por
+                        
+                        # Separar por estado solo para cursos en inscripción
+                        if course.status in ['I', 'IT'] and solicitud.estado == 'pendiente':
+                            pending_courses.append(course)
+                        else:
+                            approved_courses.append(course)
+                    except SolicitudInscripcion.DoesNotExist:
+                        course.solicitud_estado = None
+                        course.fecha_revision = None
+                        course.revisado_por = None
+                        approved_courses.append(course)
+                
+                context['enrolled_courses'] = approved_courses
+                context['pending_courses'] = pending_courses
             else:
-                enrolled_courses = Curso.objects.none()
-            context['enrolled_courses'] = enrolled_courses
+                context['enrolled_courses'] = Curso.objects.none()
+                context['pending_courses'] = Curso.objects.none()
         elif user.groups.first().name in ['Administración', 'Secretaría']:
             curso_academico_activo = CursoAcademico.objects.filter(activo=True).first()
             if curso_academico_activo:

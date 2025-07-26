@@ -12,7 +12,9 @@
   {% if group_name == 'Secretaría' %}
   <h3>Administrar los Cursos Disponibles</h3>
   <br>
-  <a class="btn btn-primary" href="{% url 'principal:crear_cursos'%}">Agregar Curso</a>
+  <a class="btn btn-primary" href="{% url 'principal:crear_cursos'%}">
+    <i class="bi bi-plus-circle"></i> Agregar Curso
+  </a>
   {% else %}
   <h3>Listado de Cursos Disponibles</h3>
 
@@ -98,7 +100,11 @@
           {% elif course.is_enrolled %}
           <p class="fw-bold bg-light text-center">Ya estás inscrito</p>
           {% elif course.status == 'I' and course.formulario_aplicacion %}
-          <a class="btn btn-sm btn-success" href="{% url 'principal:aplicar_curso' course.id %}">Aplicar al Curso</a>
+          <div class="text-center">
+            <a class="btn btn-sm btn-success" href="{% url 'principal:aplicar_curso' course.id %}">
+              <i class="bi bi-file-earmark-text"></i> Aplicar al Curso
+            </a>
+          </div>
           {% elif course.status == 'I' %}
           <!-- No mostrar nada si no hay formulario -->
           <!-- <p class="text-muted small">
@@ -114,19 +120,26 @@
 
 
           {% if group_name == 'Secretaría' %}
-          <a class="btn btn-sm btn-warning" href="{% url 'principal:editar_curso' course.id %}">Editar</a>
+          <a class="btn btn-sm btn-warning" href="{% url 'principal:editar_curso' course.id %}">
+            <i class="bi bi-pencil-square"></i> Editar
+          </a>
           <a class="btn btn-sm btn-danger" href="{% url 'principal:eliminar_curso' course.id %}"
-            onclick="return confirm('¿Estás seguro de que deseas eliminar este curso?')">Eliminar</a>
+            onclick="return confirm('¿Estás seguro de que deseas eliminar este curso?')">
+            <i class="bi bi-trash"></i> Eliminar
+          </a>
           {% if course.formulario_aplicacion %}
           <div class="mt-2">
             <a class="btn btn-xs btn-info" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;"
-              href="{% url 'principal:formulario_update' course.formulario_aplicacion.id %}">Editar Formulario de
-              Aplicación</a>
+              href="{% url 'principal:formulario_update' course.formulario_aplicacion.id %}">
+              <i class="bi bi-pencil-square"></i> Editar Formulario de Aplicación
+            </a>
           </div>
           {% else %}
           <div class="mt-2">
             <a class="btn btn-xs btn-success" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;"
-              href="{% url 'principal:formulario_create' %}?curso_id={{ course.id }}">Formulario de Aplicación</a>
+              href="{% url 'principal:formulario_create' %}?curso_id={{ course.id }}">
+              <i class="bi bi-plus-circle"></i> Formulario de Aplicación
+            </a>
           </div>
           {% endif %}
           {% endif %}

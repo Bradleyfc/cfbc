@@ -9,27 +9,62 @@
             <ul class="list-group list-group-flush">
                 {% for course in enrolled_courses %}
                     <li class="list-group-item">
-                        <strong class="fs-5">{{ course.name }}</strong>
-                         
-                            <div >
-                                <p>Estado:
-                                {% if course.status == 'F' %}
-                                <span class="badge bg-danger px-3 py-1.5 text-center" style="min-width: 120px;">{{course.get_status_display}}</span>
-                                {% elif course.status == 'P' %}
-                                <span class="badge bg-warning text-dark px-3 py-1.5  text-center" style="min-width: 120px;">{{course.get_status_display}}</span>
-                                {% elif course.status == 'I' %}
-                                <span class="badge bg-success px-3 py-1.5 text-center" style="min-width: 120px;">{{course.get_status_display}}</span>
-                                {% elif course.status == 'IT' %}
-                                <span class="badge bg-info px-3 py-1.5 text-center" style="min-width: 120px;">{{course.get_status_display}}</span>
-                                {% else %}
-                                ({{ course.get_status_display }})
+                        <div class="row">
+                            <div class="col-md-8">
+                                <strong class="fs-5">{{ course.name }}</strong>
+                                <div class="mt-2">
+                                    <p class="mb-1">Estado del curso:
+                                    {% if course.status == 'F' %}
+                                    <span class="badge bg-danger px-3 py-1.5 text-center" style="min-width: 120px;">{{course.get_status_display}}</span>
+                                    {% elif course.status == 'P' %}
+                                    <span class="badge bg-warning text-dark px-3 py-1.5  text-center" style="min-width: 120px;">{{course.get_status_display}}</span>
+                                    {% elif course.status == 'I' %}
+                                    <span class="badge bg-success px-3 py-1.5 text-center" style="min-width: 120px;">{{course.get_status_display}}</span>
+                                    {% elif course.status == 'IT' %}
+                                    <span class="badge bg-info px-3 py-1.5 text-center" style="min-width: 120px;">{{course.get_status_display}}</span>
+                                    {% else %}
+                                    ({{ course.get_status_display }})
+                                    {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <!-- Mostrar estado de matrícula solo para cursos aprobados en inscripción o plazo terminado -->
+                            {% if course.status == 'I' or course.status == 'IT' %}
+                                {% if course.solicitud_estado == 'aprobada' %}
+                                <div class="col-md-4">
+                                    <div class="card border-1 shadow-sm">
+                                        <div class="card-body p-2">
+                                            <small class="card-title mb-2 text-center d-block text-muted" style="font-size: 0.8rem;">
+                                                <i class="bi bi-clipboard-check me-1"></i>Estado de Matrícula
+                                            </small>
+                                            <div class="text-center">
+                                                <span class="badge bg-success px-2 py-1" style="font-size: 0.75rem;">
+                                                    <i class="bi bi-check-circle me-1"></i>Matrícula Aprobada
+                                                </span>
+                                                {% if course.fecha_revision %}
+                                                    <small class="text-muted d-block mt-1" style="font-size: 0.7rem;">
+                                                        <i class="bi bi-calendar-check me-1"></i>
+                                                        {{ course.fecha_revision|date:"d/m/Y" }}
+                                                    </small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 {% endif %}
-                               </div>
-                               <!-- {{ course.get_status_display }}</span></p> -->
-                        <!-- <p>{{ course.description }}</p> -->
+                            {% endif %}
+                        </div>
+                        
                         {% if course.status == 'P' or course.status == 'F' %}
-                            <a href="{% url 'principal:student_course_attendances' student_id=user.id course_id=course.id %}" class="btn btn-info btn-sm float-end ">Ver asistencias</a>
-                            <a href="{% url 'principal:student_course_notes' student_id=user.id course_id=course.id %}" class="btn btn-success btn-sm float-end me-3">Ver Notas</a>
+                            <div class="mt-2">
+                                <a href="{% url 'principal:student_course_attendances' student_id=user.id course_id=course.id %}" class="btn btn-info btn-sm float-end">
+                                  <i class="bi bi-calendar-check"></i> Ver asistencias
+                                </a>
+                                <a href="{% url 'principal:student_course_notes' student_id=user.id course_id=course.id %}" class="btn btn-success btn-sm float-end me-2">
+                                  <i class="bi bi-clipboard-data"></i> Ver Notas
+                                </a>
+                            </div>
                         {% endif %}
                         
                     </li>
@@ -40,3 +75,53 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Sección de Cursos Pendientes -->
+{% if pending_courses %}
+<div class="card border rounded-2 shadow p-3 mb-3">
+    <div class="card-body">
+        <h5 class="card-title">
+            <i class="bi bi-clock-history me-2"></i>Cursos Pendientes
+        </h5>
+        <hr>
+        <p class="text-muted mb-3">Cursos con solicitudes esperando revisión del profesor</p>
+        
+        <ul class="list-group list-group-flush">
+            {% for course in pending_courses %}
+                <li class="list-group-item">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <strong class="fs-5">{{ course.name }}</strong>
+                            <div class="mt-2">
+                                <p class="mb-1">Estado del curso:
+                                {% if course.status == 'I' %}
+                                <span class="badge bg-success px-3 py-1.5 text-center" style="min-width: 120px;">{{course.get_status_display}}</span>
+                                {% elif course.status == 'IT' %}
+                                <span class="badge bg-info px-3 py-1.5 text-center" style="min-width: 120px;">{{course.get_status_display}}</span>
+                                {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="card border-warning">
+                                <div class="card-body p-2 bg-warning bg-opacity-10">
+                                    <div class="text-center">
+                                        <span class="badge bg-warning text-dark px-2 py-1" style="font-size: 0.75rem;">
+                                            <i class="bi bi-clock me-1"></i>Pendiente de Revisión
+                                        </span>
+                                        <small class="text-muted d-block mt-1" style="font-size: 0.7rem;">
+                                            <i class="bi bi-info-circle me-1"></i>
+                                            Esperando respuesta del profesor
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endif %}

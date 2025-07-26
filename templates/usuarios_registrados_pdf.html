@@ -42,6 +42,7 @@
                 <th>Email</th>
                 <th>Nacionalidad</th>
                 <th>Carnet ID</th>
+                <th>Carnet Disponible</th>
                 <th>Sexo</th>
                 <th>Dirección</th>
                 <th>Municipio</th>
@@ -50,6 +51,7 @@
                 <th>Grado Académico</th>
                 <th>Ocupación</th>
                 <th>Título</th>
+                <th>Título Disponible</th>
             </tr>
         </thead>
         <tbody>
@@ -60,6 +62,7 @@
                 <td>{{ registro.user.email }}</td>
                 <td>{{ registro.nacionalidad }}</td>
                 <td>{{ registro.carnet }}</td>
+                <td>{% if registro.foto_carnet %}Sí{% else %}No{% endif %}</td>
                 <td>{{ registro.sexo }}</td>
                 <td>{{ registro.address }}</td>
                 <td>{{ registro.location }}</td>
@@ -68,6 +71,7 @@
                 <td>{{ registro.get_grado_display }}</td>
                 <td>{{ registro.get_ocupacion_display }}</td>
                 <td>{{ registro.titulo }}</td>
+                <td>{% if registro.foto_titulo %}Sí{% else %}No{% endif %}</td>
             </tr>
             {% endfor %}
         </tbody>

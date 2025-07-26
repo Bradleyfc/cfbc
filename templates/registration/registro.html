@@ -44,7 +44,8 @@
     <img src="{% static 'icono.jpg' %}" class="card-img-top" alt="logo del centro"
       style="max-width: 20%; height: auto; margin: 0 auto; display: block; padding-top: 5%;">
     <div class="card-body">
-      <h5 class="card-title">Rellene todos los campos</h5>
+      <h5 class="card-title text-center">Rellene todos los campos</h5>
+      <br>
 
       <!-- Eliminar errores no asociados a campos específicos -->
       {% if form.non_field_errors %}
@@ -54,11 +55,19 @@
       {{ form | crispy }}
       <div>
 
-        <a href="{% url 'principal:home' %}" class="card-link">Inicio</a>
-        <p>Ya tienes una cuenta? <a href="{% url 'login' %}" class="card-link">Inicia Sesion</a></p>
+        <a href="{% url 'principal:home' %}" class="card-link">
+          <i class="bi bi-house"></i> Inicio
+        </a>
       </div>
 
-      <button class="btn btn-sm btn-primary float-end" type="submit">Registrarse</button>
+      <div class="d-flex justify-content-between align-items-center">
+        <p class="mb-0">Ya tienes una cuenta? <a href="{% url 'login' %}" class="card-link">
+            <i class="bi bi-box-arrow-in-right"></i> Inicia Sesión
+          </a></p>
+        <button class="btn btn-sm btn-primary" type="submit">
+          <i class="bi bi-person-plus"></i> Registrarse
+        </button>
+      </div>
     </div>
   </div>
 
