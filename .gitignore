@@ -22,7 +22,7 @@ secrets.py
 
 # Archivos estáticos y medios (generados automáticamente)
 staticfiles/
-media/
+# No ignorar media/ en producción si necesitas los archivos subidos
 
 # Logs
 *.log
