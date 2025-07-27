@@ -28,6 +28,9 @@ urlpatterns = [
     path('setup-admin/', create_admin_user, name='setup_admin'),
 ]
 
-# Agregar configuración para servir archivos multimedia en desarrollo
+# Configuración para servir archivos multimedia
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Configuración adicional para desarrollo
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
