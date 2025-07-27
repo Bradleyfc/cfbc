@@ -168,8 +168,7 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 EMAIL_TIMEOUT = 60  # segundos
 # Configuración del remitente por defecto para correos noreply
 DEFAULT_FROM_EMAIL = 'Centro Fray Bartolome de las Casas <noreply@cfbc.edu.ni>'
-# C
-onfiguraciones de seguridad para producción
+# Configuraciones de seguridad para producción
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
