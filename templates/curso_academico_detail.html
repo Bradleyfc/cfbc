@@ -1,6 +1,6 @@
 {% extends 'base.html' %} {% load static %} {% load custom_filters %} {% block content %}
 <div class="container mt-4">
-    <h2>Detalles del Curso Académico: {{ curso_academico.nombre }}</h2>
+    <h2 class="text-center">Detalles del Curso Académico: {{ curso_academico.nombre }}</h2>
     <p><strong>Activo:</strong> {{ curso_academico.activo|yesno:"Sí,No" }}</p>
     <p><strong>Archivado:</strong> {{ curso_academico.archivado|yesno:"Sí,No" }}</p>
     <p><strong>Fecha de Creación:</strong> {{ curso_academico.fecha_creacion }}</p>

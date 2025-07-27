@@ -150,12 +150,14 @@ class CourseForm(forms.ModelForm):
     teacher = forms.ModelChoiceField(queryset=User.objects.filter(groups__name = 'Profesores'), label = 'Profesor')
     status = forms.ChoiceField(choices=Curso.STATUS_CHOICES, initial='I', label = 'Estado')
     description = forms.CharField(widget=forms.Textarea(attrs={'rows':3}))
+    area = forms.ChoiceField(choices=Curso.AREA_CHOICES, initial='idiomas', label='Área')
+    tipo = forms.ChoiceField(choices=Curso.TIPO_CHOICES, initial='curso', label='Tipo')
     enrollment_deadline = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}), required=False, label='Fecha límite de inscripción')
     start_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}), required=False, label='Fecha de inicio del curso')
 
     class Meta:
         model = Curso
-        fields = ['image', 'name', 'description', 'teacher', 'class_quantity', 'status', 'enrollment_deadline', 'start_date', 'curso_academico']
+        fields = ['image', 'name', 'description', 'area', 'tipo', 'teacher', 'class_quantity', 'status', 'enrollment_deadline', 'start_date', 'curso_academico']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -173,6 +175,8 @@ class CourseForm(forms.ModelForm):
         Field('image'),
         Field('name'),
         Field('description'),
+        Field('area'),
+        Field('tipo'),
         Field('teacher'),
         Field('class_quantity'),
         Field('status'),

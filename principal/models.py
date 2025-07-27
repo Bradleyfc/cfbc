@@ -17,9 +17,28 @@ class Curso(models.Model):
         ('P', 'En progreso'),
         ('F', 'Finalizado'),
     ]
+    
+    AREA_CHOICES = [
+        ('idiomas', 'Idiomas'),
+        ('humanidades', 'Humanidades'),
+        ('computacion', 'Computación'),
+        ('diseno', 'Diseño'),
+        ('adolescentes', 'Adolescentes'),
+        ('teologia', 'Teología'),
+    ]
+    
+    TIPO_CHOICES = [
+        ('curso', 'Curso'),
+        ('diplomado', 'Diplomado'),
+        ('grado', 'Grado'),
+        ('taller', 'Taller'),
+    ]
+    
     image = models.ImageField(default='default/plantilla.jpg', upload_to='imagenes/', verbose_name='Imagen de curso')
     name = models.CharField(max_length=90, verbose_name='Nombre')
     description= models.TextField(blank=True, null=True, verbose_name='Descripcion')
+    area = models.CharField(max_length=20, choices=AREA_CHOICES, default='idiomas', verbose_name='Área')
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default='curso', verbose_name='Tipo')
     teacher = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'groups__name': 'Profesores'}, verbose_name='Profesor')
     class_quantity = models.PositiveIntegerField(default=0, verbose_name='Cantidad de Clases')
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='I', verbose_name='Estado')

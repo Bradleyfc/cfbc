@@ -9,8 +9,8 @@ from.models import (
 from .models import CursoAcademico
 
 class CursoAdmin(admin.ModelAdmin):
-    list_display = ('name', 'teacher', 'class_quantity', 'curso_academico')
-    list_filter = ('teacher', 'curso_academico')
+    list_display = ('name', 'area', 'tipo', 'teacher', 'class_quantity', 'curso_academico')
+    list_filter = ('area', 'tipo', 'teacher', 'curso_academico')
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)

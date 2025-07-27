@@ -26,6 +26,37 @@
                 transform: translateY(-2px);
                 transition: all 0.3s ease;
               }
+
+              /* Animación pulse con cambio de colores para el botón de Iniciar Sesión */
+              .btn-login-pulse {
+                animation: pulseWithColors 1.5s infinite;
+              }
+
+              /* Detener animación en la página de login */
+              .btn-login-no-pulse {
+                animation: none;
+              }
+
+              @keyframes pulseWithColors {
+                0% {
+                  transform: scale(1);
+                  color: white;
+                  background-color: transparent;
+                  border-color: white;
+                }
+                50% {
+                  transform: scale(1.05);
+                  color: #0d6efd;
+                  background-color: white;
+                  border-color: white;
+                }
+                100% {
+                  transform: scale(1);
+                  color: white;
+                  background-color: transparent;
+                  border-color: white;
+                }
+              }
             </style>
             <header
               class="d-flex flex-wrap align-items-center justify-content-center justify-content-md-between py-3 mb-4 border-bottom">
@@ -43,10 +74,12 @@
                 <li><a href="{% url 'principal:cursos' %}" class="nav-link px-2 text-white">Administrar Cursos</a></li>
                 <li><a href="{% url 'principal:registro_respuestas_general' %}"
                     class="nav-link px-2 text-white">Registro de Respuestas</a></li>
-                {% elif group_name == 'Profesores' %}
+                {% elif group_name == 'Administración' %}
                 <li><a href="{% url 'principal:cursos' %}" class="nav-link px-2 text-white">Nuestros Cursos</a></li>
                 <li><a href="{% url 'principal:registro_respuestas_general' %}"
                     class="nav-link px-2 text-white">Registro de Respuestas</a></li>
+                {% elif group_name == 'Profesores' %}
+                <li><a href="{% url 'principal:cursos' %}" class="nav-link px-2 text-white">Nuestros Cursos</a></li>
                 {% else %}
                 <li><a href="{% url 'principal:cursos' %}" class="nav-link px-2 text-white">Nuestros Cursos</a></li>
                 {% endif %}
@@ -64,7 +97,7 @@
         <a href="{% url 'principal:logout_view' %}" type="button" class="btn btn-outline-light text-white border-white" style="background-color: #dc3545;">Cerrar Sesion</a>
           {% endif %} -->
                 {% else %}
-                <a href="{% url 'login' %}" type="button" class="btn btn-outline-light me-2">
+                <a href="{% url 'login' %}" type="button" class="btn btn-outline-light me-2 {% if request.resolver_match.url_name == 'login' %}btn-login-no-pulse{% else %}btn-login-pulse{% endif %}">
                   <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
                 </a>
                 <a href="{% url 'principal:registro' %}" type="button" class="btn btn-light">
