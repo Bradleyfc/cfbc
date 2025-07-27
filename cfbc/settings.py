@@ -31,7 +31,26 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-c-lkpmdz%270@0-89xsztu0ugd
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+# Configuración de ALLOWED_HOSTS
+ALLOWED_HOSTS = []
+
+# Obtener hosts desde variable de entorno
+env_hosts = os.getenv('ALLOWED_HOSTS', '')
+if env_hosts:
+    ALLOWED_HOSTS.extend([host.strip() for host in env_hosts.split(',') if host.strip()])
+
+# En desarrollo, permitir localhost
+if DEBUG:
+    ALLOWED_HOSTS.extend(['localhost', '127.0.0.1'])
+
+# En producción, agregar automáticamente el host de Render
+render_host = os.getenv('RENDER_EXTERNAL_HOSTNAME')
+if render_host and render_host not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(render_host)
+
+# Si no hay hosts configurados, usar configuración por defecto
+if not ALLOWED_HOSTS:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 
 # Application definition

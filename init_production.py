@@ -13,15 +13,21 @@ from django.contrib.auth.models import User
 
 def create_superuser():
     """Crear superusuario si no existe"""
-    if not User.objects.filter(username='admin').exists():
+    username = os.getenv('ADMIN_USERNAME', 'admin')
+    email = os.getenv('ADMIN_EMAIL', 'admin@cfbc.edu.ni')
+    password = os.getenv('ADMIN_PASSWORD', 'changeme123')
+    
+    if not User.objects.filter(username=username).exists():
         User.objects.create_superuser(
-            username='admin',
-            email='admin@cfbc.edu.ni',
-            password=os.getenv('ADMIN_PASSWORD', 'changeme123')
+            username=username,
+            email=email,
+            password=password
         )
-        print("Superusuario creado exitosamente")
+        print(f"Superusuario '{username}' creado exitosamente")
+        print(f"Email: {email}")
+        print("Puedes acceder al admin en: /admin/")
     else:
-        print("Superusuario ya existe")
+        print(f"Superusuario '{username}' ya existe")
 
 if __name__ == '__main__':
     create_superuser()
