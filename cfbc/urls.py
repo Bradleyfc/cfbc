@@ -18,12 +18,14 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from create_admin_view import create_admin_user
 
 urlpatterns = [
     path('', include(('principal.urls', 'principal'), namespace='principal')),
     path('admin/', admin.site.urls),
     path('accounts/', include('django.contrib.auth.urls')),
-    
+    # Vista temporal para crear superusuario - ELIMINAR DESPUÉS DE USAR
+    path('setup-admin/', create_admin_user, name='setup_admin'),
 ]
 
 # Agregar configuración para servir archivos multimedia en desarrollo
