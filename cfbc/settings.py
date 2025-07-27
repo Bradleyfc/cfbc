@@ -56,6 +56,8 @@ if not ALLOWED_HOSTS:
 # Application definition
 
 INSTALLED_APPS = [
+    'cloudinary_storage',
+    'cloudinary',
     'crispy_forms',
     'crispy_bootstrap5',
     'django.contrib.admin',
@@ -170,14 +172,43 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # Configuración de WhiteNoise para archivos estáticos
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Media files (User uploaded files)
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+# Configuración de Cloudinary
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 
-# En producción, asegurar que el directorio de medios existe
-import os
+# Configurar Cloudinary usando CLOUDINARY_URL o variables individuales
+cloudinary_url = os.getenv('CLOUDINARY_URL')
+
+if cloudinary_url:
+    # Usar CLOUDINARY_URL si está disponible
+    cloudinary.config(cloudinary_url=cloudinary_url)
+    CLOUDINARY_STORAGE = {
+        'CLOUDINARY_URL': cloudinary_url,
+    }
+else:
+    # Usar variables individuales como fallback
+    CLOUDINARY_STORAGE = {
+        'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
+        'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
+        'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
+    }
+    cloudinary.config(
+        cloud_name=CLOUDINARY_STORAGE['CLOUD_NAME'],
+        api_key=CLOUDINARY_STORAGE['API_KEY'],
+        api_secret=CLOUDINARY_STORAGE['API_SECRET'],
+        secure=True
+    )
+
+# Media files (User uploaded files)
 if not DEBUG:
-    os.makedirs(MEDIA_ROOT, exist_ok=True)
+    # En producción usar Cloudinary
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+    MEDIA_URL = '/media/'
+else:
+    # En desarrollo usar almacenamiento local
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
